@@ -12,7 +12,12 @@ class Profile(models.Model):
 
 
 class Lesson(models.Model):
-    TYPES = [('test', 'Тест'), ('task', 'Задачник'), ('video', 'Видео'), ('text', 'Учебник')]
+    TYPES = [
+        ('test', 'Тест'),
+        ('task', 'Задачник'),
+        ('video', 'Видео'),
+        ('text', 'Учебник')
+    ]
     STATUSES = [
         ('public', 'Открытый'),
         ('private', 'Приватный'),
@@ -23,18 +28,25 @@ class Lesson(models.Model):
     title = models.CharField(max_length=200)
     type = models.CharField(max_length=10, choices=TYPES)
     status = models.CharField(max_length=10, choices=STATUSES, default='lock')
+
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='authored_lessons')
 
-    # КТО имеет доступ к этому уроку, если он приватный:
+    course = models.ForeignKey('Course', on_delete=models.SET_NULL, null=True, blank=True, related_name='course_lessons')
+
     allowed_students = models.ManyToManyField(User, blank=True, related_name='allowed_lessons')
 
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if self.course is not None:
+            self.status = 'public'
+        super().save(*args, **kwargs)
+
 
 class Course(models.Model):
     title = models.CharField(max_length=200)
-    lessons = models.ManyToManyField(Lesson)
+
 
     def __str__(self):
         return self.title

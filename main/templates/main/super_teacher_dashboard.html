@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель СуперУчителя</title>
+</head>
+<body>
+    <h1>Панель Управления СуперУчителя: {{ user.username }}</h1>
+    <p><a href="{% url 'index' %}">На главную страницу</a></p>
+    <hr>
+
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+                <h2>Создать новый урок</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ lesson_form.as_p }}
+                    <button type="submit" name="create_lesson">Создать урок</button>
+                </form>
+            </td>
+            <td style="width: 50%; vertical-align: top; padding-left: 20px; border-left: 1px solid #ccc;">
+                <h2>Создать новый курс</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ course_form.as_p }}
+                    <button type="submit" name="create_course">Создать курс</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+
+    <hr>
+
+    <h2>Все уроки в системе (Полный контроль)</h2>
+    {% if lessons %}
+        <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: left;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th>Название / Тип</th>
+                    <th>Привязка к Курсу</th>
+                    <th>Статус контента</th>
+                    <th>Доступные студенты (для Private)</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lesson in lessons %}
+                <tr>
+                    <td>
+                        <strong>{{ lesson.title }}</strong> <br>
+                        <small style="color: gray;">Тип: {{ lesson.get_type_display }}</small>
+                    </td>
+
+                    <td>
+                        <form method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                            <select name="course_id" onchange="this.form.submit()">
+                                <option value="">-- Без курса --</option>
+                                {% for course in courses %}
+                                    <option value="{{ course.id }}" {% if lesson.course_id == course.id %}selected{% endif %}>
+                                        {{ course.title }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <input type="hidden" name="change_course" value="1">
+                        </form>
+                    </td>
+
+                    <td>
+                        <form method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                            <select name="new_status" onchange="this.form.submit()">
+                                <option value="public" {% if lesson.status == 'public' %}selected{% endif %}>Открытый</option>
+                                <option value="private" {% if lesson.status == 'private' %}selected{% endif %}>Приватный</option>
+                                <option value="lock" {% if lesson.status == 'lock' %}selected{% endif %}>Закрытый</option>
+                                <option value="superlock" {% if lesson.status == 'superlock' %}selected{% endif %}>Скрыт от всех</option>
+                            </select>
+                            <input type="hidden" name="change_status" value="1">
+                        </form>
+                        {% if lesson.course %}
+                            <br><small style="color: red;">(Заблокировано курсом: всегда Открытый)</small>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if lesson.status == 'private' %}
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                                <select name="allowed_students" multiple style="height: 50px; font-size: 11px;">
+                                    {% for profile in profiles %}
+                                        <option value="{{ profile.user.id }}"
+                                            {% if profile.user in lesson.allowed_students.all %}selected{% endif %}>
+                                            {{ profile.user.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <br><button type="submit" name="change_allowed_students" style="font-size: 11px; margin-top: 2px;">Сохранить доступ</button>
+                            </form>
+                        {% else %}
+                            <span style="color: gray; font-size: 12px;">Не требуется для этого статуса</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <form method="post" style="display: inline;" onsubmit="return confirm('Точно удалить урок?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                            <button type="submit" name="delete_lesson" style="color: red;">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>В системе пока нет уроков.</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>Управление ролями пользователей</h2>
+    {% if profiles %}
+        <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th>Имя пользователя (Логин)</th>
+                    <th>Текущая роль</th>
+                    <th>Сменить роль</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for profile in profiles %}
+                <tr>
+                    <td><strong>{{ profile.user.username }}</strong> ({{ profile.user.email }})</td>
+                    <td>
+                        <span style="padding: 3px 8px; border-radius: 3px; font-weight: bold;
+                            {% if profile.role == 'teacher' %} background-color: #d4edda; color: #155724;
+                            {% else %} background-color: #e2e3e5; color: #383d41; {% endif %}">
+                            {{ profile.get_role_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <form method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="profile_id" value="{{ profile.id }}">
+                            <select name="new_role" onchange="this.form.submit()">
+                                <option value="student" {% if profile.role == 'student' %}selected{% endif %}>Студент</option>
+                                <option value="teacher" {% if profile.role == 'teacher' %}selected{% endif %}>Учитель</option>
+                            </select>
+                            <input type="hidden" name="change_role" value="1">
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Других пользователей в системе пока нет.</p>
+    {% endif %}
+    <h2>Все курсы в системе</h2>
+    {% if courses %}
+        <ul>
+        {% for course in courses %}
+            <li style="margin-bottom: 15px;">
+                <strong>{{ course.title }}</strong>
+
+                <form method="post" style="display: inline; margin-left: 15px;" onsubmit="return confirm('Точно удалить этот курс? Уроки внутри курса не удалятся, а станут Открытыми.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="course_id" value="{{ course.id }}">
+                    <button type="submit" name="delete_course" style="color: red; font-size: 12px;">Удалить курс</button>
+                </form>
+
+                <br><small style="color: gray;">Уроки в курсе:
+                    {% for lesson in course.course_lessons.all %}
+                        "{{ lesson.title }}" |
+                    {% empty %}
+                        пока нет уроков
+                    {% endfor %}
+                </small>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Курсов пока нет.</p>
+    {% endif %}
+</body>
+</html>

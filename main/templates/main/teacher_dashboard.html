@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель Учителя</title>
+</head>
+<body>
+    <h1>Кабинет Учителя: {{ user.username }}</h1>
+    <p><a href="{% url 'index' %}">На главную страницу</a></p>
+    <hr>
+
+    <h2>Создать новый урок</h2>
+    <p><em>* Урок автоматически получит статус "Закрытый" (lock)</em></p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Создать урок</button>
+    </form>
+
+    <hr>
+
+    <h2>Доступные уроки в системе (все, кроме скрытых от всех)</h2>
+    {% if lessons %}
+        <ul>
+        {% for lesson in lessons %}
+            <li>
+                <strong>{{ lesson.title }}</strong> — Тип: {{ lesson.get_type_display }}
+                (Статус: {{ lesson.get_status_display }} | Автор: {{ lesson.author.username|default:"Система" }})
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>В системе пока нет уроков.</p>
+    {% endif %}
+</body>
+</html>
