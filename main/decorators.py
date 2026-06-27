@@ -1,9 +1,25 @@
 from django.shortcuts import redirect
 
-def teacher_required(view_func):
+
+def student_only(view_func):
     def wrapper(request, *args, **kwargs):
-        if hasattr(request.user, 'profile') and request.user.profile.role == 'teacher':
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'student':
             return view_func(request, *args, **kwargs)
-        else:
-            return redirect('index')
+        return redirect('index')
+    return wrapper
+
+
+def teacher_only(view_func):
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'teacher':
+            return view_func(request, *args, **kwargs)
+        return redirect('index')
+    return wrapper
+
+
+def super_teacher_only(view_func):
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'super_teacher':
+            return view_func(request, *args, **kwargs)
+        return redirect('index')
     return wrapper
