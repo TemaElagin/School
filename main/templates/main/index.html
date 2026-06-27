@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Моя онлайн-школа</title>
+</head>
+<body>
+    <h1>Список курсов:</h1>
+    <ul>
+        {% for course in courses %}
+            <li>
+                <strong>{{ course.title }}</strong>: {{ course.description }}
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
