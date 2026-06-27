@@ -23,7 +23,10 @@ class Lesson(models.Model):
     title = models.CharField(max_length=200)
     type = models.CharField(max_length=10, choices=TYPES)
     status = models.CharField(max_length=10, choices=STATUSES, default='lock')
-    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='authored_lessons')
+
+    # КТО имеет доступ к этому уроку, если он приватный:
+    allowed_students = models.ManyToManyField(User, blank=True, related_name='allowed_lessons')
 
     def __str__(self):
         return self.title

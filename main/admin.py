@@ -6,6 +6,11 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'role')
     list_editable = ('role',)
 
-admin.site.register(Lesson)
+@admin.register(Lesson)
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ('title', 'type', 'status', 'author')
+    filter_horizontal = ('allowed_students',)
+
+
 admin.site.register(Course)
 admin.site.register(Submission)

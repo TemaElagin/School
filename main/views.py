@@ -4,9 +4,30 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
 from .decorators import teacher_only, super_teacher_only
 from django.http import HttpResponse
+from django.db.models import Q
+from .models import Lesson
+
+from django.db.models import Q
+from .models import Lesson, Course  # Убедись, что Course тоже импортирован
+
 
 def index(request):
-    return HttpResponse("Интерфейс Студента / Главная страница")
+    if request.user.is_authenticated:
+        allowed_lessons = Lesson.objects.filter(
+            Q(status='public') |
+            Q(status='private', allowed_students=request.user)
+        )
+    else:
+        allowed_lessons = Lesson.objects.filter(status='public')
+
+    lessons = allowed_lessons.filter(course__isnull=True).distinct()
+
+    courses = Course.objects.all()
+
+    return render(request, 'main/index.html', {
+        'lessons': lessons,
+        'courses': courses
+    })
 
 @teacher_only
 def teacher_dashboard(request):

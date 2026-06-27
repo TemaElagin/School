@@ -1,16 +1,26 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Моя онлайн-школа</title>
-</head>
-<body>
-    <h1>Список курсов:</h1>
+<h2>Список курсов</h2>
+{% if courses %}
     <ul>
-        {% for course in courses %}
-            <li>
-                <strong>{{ course.title }}</strong>: {{ course.description }}
-            </li>
-        {% endfor %}
+    {% for course in courses %}
+        <li><strong>{{ course }}</strong> (Преподаватель: {{ course.teacher }})</li>
+    {% endfor %}
     </ul>
-</body>
-</html>
+{% else %}
+    <p>Курсов пока нет.</p>
+{% endif %}
+
+<hr>
+
+<h2>Одиночные уроки (вне курсов)</h2>
+{% if lessons %}
+    <ul>
+    {% for lesson in lessons %}
+        <li>
+            <strong>{{ lesson.title }}</strong> — Тип: {{ lesson.get_type_display }}
+            (Статус: {{ lesson.get_status_display }})
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Свободных уроков пока нет.</p>
+{% endif %}
