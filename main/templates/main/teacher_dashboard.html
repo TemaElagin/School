@@ -23,9 +23,13 @@
     {% if lessons %}
         <ul>
         {% for lesson in lessons %}
-            <li>
+            <li style="margin-bottom: 10px;">
                 <strong>{{ lesson.title }}</strong> — Тип: {{ lesson.get_type_display }}
                 (Статус: {{ lesson.get_status_display }} | Автор: {{ lesson.author.username|default:"Система" }})
+
+                {% if lesson.type == 'test' %}
+                    | <a href="{% url 'manage_test' lesson.id %}" style="color: #007bff; font-weight: bold;">Наполнить тест вопросами</a>
+                {% endif %}
             </li>
         {% endfor %}
         </ul>

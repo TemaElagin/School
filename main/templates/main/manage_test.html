@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Настройка вопросов: {{ lesson.title }}</title>
+</head>
+<body>
+    <p>
+        {% if user.profile.role == 'super_teacher' %}
+            <a href="{% url 'super_teacher_dashboard' %}">← В панель управления</a>
+        {% else %}
+            <a href="{% url 'teacher_dashboard' %}">← В кабинет учителя</a>
+        {% endif %}
+    </p>
+    <hr>
+
+    <h1>Конструктор теста для урока: "{{ lesson.title }}"</h1>
+    <p>Заполните текст вопросов (можно использовать LaTeX формулы через $) и укажите точный ответ.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
+            <thead style="background-color: #f2f2f2;">
+                <tr>
+                    <th>Текст вопроса (LaTeX приветствуется)</th>
+                    <th>Правильный ответ (строка или число)</th>
+                    <th>Удалить?</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in formset %}
+                <tr>
+                    <td>
+                        {{ form.id }} {{ form.text }}
+                    </td>
+                    <td>{{ form.correct_answer }}</td>
+                    <td style="text-align: center;">{% if form.instance.pk %}{{ form.DELETE }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <br>
+        <button type="submit" style="padding: 12px 25px; background-color: #28a745; color: white; border: none; cursor: pointer; font-size: 14px;">
+            Сохранить все изменения в тесте
+        </button>
+    </form>
+</body>
+</html>

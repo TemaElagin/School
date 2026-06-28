@@ -32,6 +32,35 @@
 
     <hr>
 
+    <h2>Все курсы в системе</h2>
+    {% if courses %}
+        <ul>
+        {% for course in courses %}
+            <li style="margin-bottom: 15px;">
+                <strong>{{ course.title }}</strong>
+
+                <form method="post" style="display: inline; margin-left: 15px;" onsubmit="return confirm('Точно удалить этот курс? Уроки внутри курса не удалятся, а станут Открытыми.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="course_id" value="{{ course.id }}">
+                    <button type="submit" name="delete_course" style="color: red; font-size: 12px;">Удалить курс</button>
+                </form>
+
+                <br><small style="color: gray;">Уроки в курсе:
+                    {% for lesson in course.course_lessons.all %}
+                        "{{ lesson.title }}" |
+                    {% empty %}
+                        пока нет уроков
+                    {% endfor %}
+                </small>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Курсов пока нет.</p>
+    {% endif %}
+
+    <hr>
+
     <h2>Все уроки в системе (Полный контроль)</h2>
     {% if lessons %}
         <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: left;">
@@ -50,6 +79,10 @@
                     <td>
                         <strong>{{ lesson.title }}</strong> <br>
                         <small style="color: gray;">Тип: {{ lesson.get_type_display }}</small>
+
+                        {% if lesson.type == 'test' %}
+                            <br><a href="{% url 'manage_test' lesson.id %}" style="color: #007bff; font-size: 12px; font-weight: bold;">Настройка теста (Вопросы)</a>
+                        {% endif %}
                     </td>
 
                     <td>
@@ -122,6 +155,38 @@
 
     <hr>
 
+    <h2>Журнал успеваемости (Последние результаты тестов)</h2>
+    {% if test_results %}
+        <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%; text-align: left;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th>Ученик (Логин)</th>
+                    <th>Тест / Урок</th>
+                    <th>Кол-во попыток</th> <th>Последний результат</th>
+                    <th>Дата прохождения</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for res in test_results %}
+                <tr>
+                    <td><strong>{{ res.student.username }}</strong></td>
+                    <td>{{ res.lesson.title }}</td>
+                    <td>Пройдено раз: {{ res.attempts_count }}</td> <td>
+                        <strong style="color: {% if res.score == res.total_questions %}green{% else %}orange{% endif %};">
+                            {{ res.score }} из {{ res.total_questions }}
+                        </strong>
+                    </td>
+                    <td><small style="color: gray;">{{ res.updated_at|date:"d.m.Y H:i" }}</small></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: gray;">Ни один ученик еще не проходил тесты.</p>
+    {% endif %}
+
+    <hr>
+
     <h2>Управление ролями пользователей</h2>
     {% if profiles %}
         <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
@@ -160,32 +225,6 @@
         </table>
     {% else %}
         <p>Других пользователей в системе пока нет.</p>
-    {% endif %}
-    <h2>Все курсы в системе</h2>
-    {% if courses %}
-        <ul>
-        {% for course in courses %}
-            <li style="margin-bottom: 15px;">
-                <strong>{{ course.title }}</strong>
-
-                <form method="post" style="display: inline; margin-left: 15px;" onsubmit="return confirm('Точно удалить этот курс? Уроки внутри курса не удалятся, а станут Открытыми.');">
-                    {% csrf_token %}
-                    <input type="hidden" name="course_id" value="{{ course.id }}">
-                    <button type="submit" name="delete_course" style="color: red; font-size: 12px;">Удалить курс</button>
-                </form>
-
-                <br><small style="color: gray;">Уроки в курсе:
-                    {% for lesson in course.course_lessons.all %}
-                        "{{ lesson.title }}" |
-                    {% empty %}
-                        пока нет уроков
-                    {% endfor %}
-                </small>
-            </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>Курсов пока нет.</p>
     {% endif %}
 </body>
 </html>

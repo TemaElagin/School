@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ lesson.title }}</title>
+
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+</head>
+<body>
+    <p><a href="{% url 'index' %}">← На главную</a></p>
+    <hr>
+
+    <h1>{{ lesson.title }}</h1>
+    <p>Тип занятия: <strong>{{ lesson.get_type_display }}</strong></p>
+    <hr>
+
+    {% if test_submitted %}
+        <div style="background-color: #e2f0d9; color: #385723; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #385723;">
+            <h3>📊 Тест отправлен на проверку!</h3>
+            <p>Ваш результат в текущей попытке: <strong>{{ score }}</strong> из <strong>{{ total_questions }}</strong> правильных ответов.</p>
+        </div>
+    {% elif existing_result %}
+        <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #ffeeba;">
+            <h3>📝 Вы уже проходили этот тест ранее</h3>
+            <p>Ваш последний сохраненный результат: <strong>{{ existing_result.score }}</strong> из <strong>{{ existing_result.total_questions }}</strong> (Дата попытки: {{ existing_result.updated_at|date:"d.m.Y H:i" }}).</p>
+        </div>
+    {% endif %}
+
+
+    {% if lesson.type == 'text' %}
+        <div class="content" style="font-size: 18px; line-height: 1.6; max-width: 800px; background-color: #fcfcfc; padding: 10px;">
+            {{ lesson.content_text|linebreaks }}
+        </div>
+
+    {% elif lesson.type == 'video' %}
+        {% if lesson.video_url %}
+            <div style="margin-bottom: 20px; background-color: #f1f3f5; padding: 15px; border-radius: 4px;">
+                <h3>🎥 Ссылка на видео-материалы:</h3>
+                <p><a href="{{ lesson.video_url }}" target="_blank" style="font-weight: bold; color: #007bff;">{{ lesson.video_url }}</a></p>
+            </div>
+        {% endif %}
+        {% if lesson.content_text %}
+            <h3>Описание и конспект к лекции:</h3>
+            <div class="content" style="font-size: 16px; line-height: 1.5;">{{ lesson.content_text|linebreaks }}</div>
+        {% endif %}
+
+    {% elif lesson.type == 'task' %}
+        <div class="task-block" style="background-color: #f9f9f9; padding: 20px; border-left: 5px solid #007bff; margin-bottom: 20px;">
+            <h3>Условие задачи:</h3>
+            <div class="content" style="font-size: 16px;">{{ lesson.content_text|linebreaks }}</div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <p>
+                <strong>Введите ваш ответ:</strong> <br>
+                <input type="text" name="student_answer" placeholder="Ответ..." style="padding: 8px; width: 300px; margin-top: 5px;" required>
+            </p>
+            <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                Проверить задачу
+            </button>
+        </form>
+
+    {% elif lesson.type == 'test' %}
+        {% if lesson.content_text %}
+            <div class="content" style="margin-bottom: 20px; font-style: italic; color: #555;">{{ lesson.content_text|linebreaks }}</div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            {% for question in questions %}
+                <div style="margin-bottom: 20px; padding: 15px; border-radius: 5px;
+                    border-left: 4px solid {% if not test_submitted %}#007bff{% elif question.is_correct %}#28a745{% else %}#dc3545{% endif %};
+                    background-color: {% if not test_submitted %}#f8f9fa{% elif question.is_correct %}#f4fbf3{% else %}#fdf4f4{% endif %};">
+
+                    <p><strong>Вопрос {{ forloop.counter }}:</strong> {{ question.text }}</p>
+
+                    <p>
+                        <input type="text" name="question_{{ question.id }}"
+                               value="{{ question.student_answer|default:'' }}"
+                               placeholder="Введите ваш ответ..."
+                               style="padding: 8px; width: 280px; font-size: 14px;"
+                               {% if test_submitted %}disabled{% endif %} required>
+                    </p>
+
+                    {% if test_submitted %}
+                        {% if question.is_correct %}
+                            <span style="color: green; font-weight: bold; font-size: 14px;">✓ Верно</span>
+                        {% else %}
+                            <span style="color: red; font-weight: bold; font-size: 14px;">
+                                ❌ Ошибка (Вы ввели: "{{ question.student_answer }}". Ожидался ответ: {{ question.correct_answer }})
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% empty %}
+                <p style="color: gray;">В этом тесте пока нет вопросов. Преподаватель еще не наполнил его.</p>
+            {% endfor %}
+
+            {% if questions and not test_submitted %}
+                <button type="submit" style="padding: 12px 25px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 14px; font-weight: bold;">
+                    Отправить все ответы теста
+                </button>
+            {% endif %}
+
+            {% if test_submitted %}
+                <div style="background-color: #e2f0d9; color: #385723; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #385723;">
+                    <h3>📊 Тест отправлен! (Всего попыток: {{ existing_result.attempts_count }})</h3>
+                    <p>Ваш текущий результат: <strong>{{ score }}</strong> из <strong>{{ total_questions }}</strong>.</p>
+                </div>
+            {% elif existing_result %}
+                <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #ffeeba;">
+                    <h3>📝 Вы уже проходили этот тест</h3>
+                    <p>Ваш последний результат: <strong>{{ existing_result.score }}</strong> из <strong>{{ existing_result.total_questions }}</strong> (Всего попыток: {{ existing_result.attempts_count }} | Дата: {{ existing_result.updated_at|date:"d.m.Y H:i" }}).</p>
+                </div>
+            {% endif %}
+        </form>
+    {% endif %}
+
+</body>
+</html>

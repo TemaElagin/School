@@ -6,6 +6,12 @@ from .models import Lesson, Course, Profile
 from .forms import RegistrationForm, TeacherLessonCreateForm, SuperLessonCreateForm, CourseCreateForm, \
     EditAllowedStudentsForm
 from .decorators import teacher_only, super_teacher_only
+from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404
+from .models import Lesson, Question
+from .forms import LessonQuestionFormSet
+from .models import Lesson, TestResult
+from django.db.models import F
 
 
 def index(request):
@@ -176,10 +182,89 @@ def super_teacher_dashboard(request):
     all_courses = Course.objects.all()
     all_profiles = Profile.objects.exclude(user=request.user)
 
+    all_test_results = TestResult.objects.all().select_related('student', 'lesson').order_by('-updated_at')
+
     return render(request, 'main/super_teacher_dashboard.html', {
         'lesson_form': lesson_form,
         'course_form': course_form,
         'lessons': all_lessons,
         'courses': all_courses,
         'profiles': all_profiles,
+        'test_results': all_test_results,  # <-- Передали в шаблон
+    })
+
+
+def lesson_detail(request, lesson_id):
+    lesson = get_object_or_404(Lesson, id=lesson_id)
+    questions = lesson.questions.all()
+
+    submitted = False
+    score = 0
+    total_questions = questions.count()
+
+    # Берем существующую запись, чтобы показать старый результат при входе
+    existing_result = None
+    if request.user.is_authenticated and lesson.type == 'test':
+        existing_result = TestResult.objects.filter(student=request.user, lesson=lesson).first()
+
+    if request.method == 'POST' and lesson.type == 'test':
+        submitted = True
+        for question in questions:
+            student_ans = request.POST.get(f'question_{question.id}', '').strip()
+            correct_ans = question.correct_answer.strip()
+
+            is_correct = student_ans.lower() == correct_ans.lower()
+            if is_correct:
+                score += 1
+
+            question.student_answer = student_ans
+            question.is_correct = is_correct
+
+        if request.user.is_authenticated:
+            # Если запись уже есть, мы обновляем баллы и делаем +1 к счетчику
+            if existing_result:
+                existing_result.score = score
+                existing_result.total_questions = total_questions
+                existing_result.attempts_count += 1
+                existing_result.save()
+            else:
+                # Если это самый первый раз — создаем строку с 1 попыткой
+                existing_result = TestResult.objects.create(
+                    student=request.user,
+                    lesson=lesson,
+                    score=score,
+                    total_questions=total_questions,
+                    attempts_count=1
+                )
+
+    return render(request, 'main/lesson_detail.html', {
+        'lesson': lesson,
+        'questions': questions,
+        'submitted': submitted,
+        'score': score,
+        'total_questions': total_questions,
+        'existing_result': existing_result,
+        'test_submitted': submitted
+    })
+
+
+def manage_test(request, lesson_id):
+    lesson = get_object_or_404(Lesson, id=lesson_id, type='test')
+
+    if request.user.profile.role not in ['teacher', 'super_teacher']:
+        return redirect('index')
+    if request.user.profile.role == 'teacher' and lesson.author != request.user:
+        return redirect('index')
+
+    if request.method == 'POST':
+        formset = LessonQuestionFormSet(request.POST, instance=lesson)
+        if formset.is_valid():
+            formset.save()
+            return redirect('manage_test', lesson_id=lesson.id)
+    else:
+        formset = LessonQuestionFormSet(instance=lesson)
+
+    return render(request, 'main/manage_test.html', {
+        'lesson': lesson,
+        'formset': formset
     })

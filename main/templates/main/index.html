@@ -50,5 +50,21 @@
     {% else %}
         <p>Свободных уроков пока нет.</p>
     {% endif %}
+    <h2>Одиночные уроки (вне курсов)</h2>
+    {% if lessons %}
+        <ul>
+        {% for lesson in lessons %}
+            <li>
+                <a href="{% url 'lesson_detail' lesson.id %}" style="font-weight: bold; color: #007bff; text-decoration: none;">
+                    {{ lesson.title }}
+                </a>
+                — Тип: {{ lesson.get_type_display }}
+                (Статус: {{ lesson.get_status_display }})
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Свободных уроков пока нет.</p>
+    {% endif %}
 </body>
 </html>
