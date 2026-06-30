@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+import os
 
 
 class Profile(models.Model):
@@ -95,3 +96,31 @@ class TestResult(models.Model):
 
     def __str__(self):
         return f"{self.student.username} -> {self.lesson.title} (Попыток: {self.attempts_count}): {self.score}/{self.total_questions}"
+
+def student_submission_path(instance, filename):
+    return f'submissions/student_{instance.student.id}/lesson_{instance.lesson.id}/{filename}'
+
+def teacher_response_path(instance, filename):
+    return f'submissions/student_{instance.student.id}/lesson_{instance.lesson.id}/teacher_{filename}'
+
+
+class TaskSubmission(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions', verbose_name="Ученик")
+    lesson = models.ForeignKey('Lesson', on_delete=models.CASCADE, related_name='submissions',
+                               verbose_name="Урок-Задача")
+
+    file = models.FileField(upload_to=student_submission_path, verbose_name="Файл с решением")
+    submitted_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отправки")
+
+    is_checked = models.BooleanField(default=False, verbose_name="Проверено")
+    grade = models.CharField(max_length=50, blank=True, null=True, verbose_name="Оценка/Балл")
+    teacher_comment = models.TextField(blank=True, null=True, verbose_name="Комментарий учителя")
+    teacher_file = models.FileField(upload_to=teacher_response_path, blank=True, null=True,
+                                    verbose_name="Проверенный файл от учителя")
+    checked_at = models.DateTimeField(blank=True, null=True, verbose_name="Дата проверки")
+
+    class Meta:
+        unique_together = ('student', 'lesson')
+
+    def __str__(self):
+        return f"Решение: {self.student.username} по {self.lesson.title}"

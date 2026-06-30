@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Проверка работы: {{ submission.student.username }}</title>
+</head>
+<body>
+    <h1>Проверка решения задачи</h1>
+    <p><strong>Ученик:</strong> {{ submission.student.username }}</p>
+    <p><strong>Урок:</strong> {{ submission.lesson.title }}</p>
+    <p><strong>Файл ученика:</strong> <a href="{{ submission.file.url }}" target="_blank" style="font-size: 16px; font-weight: bold; color: #007bff;">Открыть/Скачать решение студента</a></p>
+    <hr>
+
+    <h3>Выставить оценку и прикрепить разбор:</h3>
+    <form method="post" enctype="multipart/form-data" style="max-width: 600px;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" style="padding: 12px 25px; background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold;">
+            Сохранить проверку и отправить ученику
+        </button>
+    </form>
+</body>
+</html>

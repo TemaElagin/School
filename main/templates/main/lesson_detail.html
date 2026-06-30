@@ -21,19 +21,23 @@
     <p><a href="{% url 'index' %}">← На главную</a></p>
     <hr>
 
-    <h1>{{ lesson.title }}</h1>
+    <h1>{{ lesson.title }}
+        {% if user.profile.role == 'super_teacher' or user.profile.role == 'teacher' %}
+            <a href="{% url 'edit_lesson' lesson.id %}" style="font-size: 14px; background-color: #ffc107; color: black; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-left: 15px;">✏️ Редактировать название и контент</a>
+        {% endif %}
+    </h1>
     <p>Тип занятия: <strong>{{ lesson.get_type_display }}</strong></p>
     <hr>
 
     {% if test_submitted %}
         <div style="background-color: #e2f0d9; color: #385723; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #385723;">
             <h3>📊 Тест отправлен на проверку!</h3>
-            <p>Ваш результат в текущей попытке: <strong>{{ score }}</strong> из <strong>{{ total_questions }}</strong> правильных ответов.</p>
+            <p>Ваш результат в текущей попытке: <strong>{{ score }}</strong> из <strong>{{ total_questions }}</strong> правильных ответов. (Всего попыток: {{ existing_result.attempts_count }})</p>
         </div>
     {% elif existing_result %}
         <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #ffeeba;">
             <h3>📝 Вы уже проходили этот тест ранее</h3>
-            <p>Ваш последний сохраненный результат: <strong>{{ existing_result.score }}</strong> из <strong>{{ existing_result.total_questions }}</strong> (Дата попытки: {{ existing_result.updated_at|date:"d.m.Y H:i" }}).</p>
+            <p>Ваш последний результат: <strong>{{ existing_result.score }}</strong> из <strong>{{ existing_result.total_questions }}</strong> (Всего попыток: {{ existing_result.attempts_count }} | Дата: {{ existing_result.updated_at|date:"d.m.Y H:i" }}).</p>
         </div>
     {% endif %}
 
@@ -44,31 +48,71 @@
         </div>
 
     {% elif lesson.type == 'video' %}
-        {% if lesson.video_url %}
-            <div style="margin-bottom: 20px; background-color: #f1f3f5; padding: 15px; border-radius: 4px;">
-                <h3>🎥 Ссылка на видео-материалы:</h3>
-                <p><a href="{{ lesson.video_url }}" target="_blank" style="font-weight: bold; color: #007bff;">{{ lesson.video_url }}</a></p>
-            </div>
-        {% endif %}
+        <div style="margin-bottom: 25px; max-width: 800px;">
+            {% if embed_video_url %}
+                <iframe width="100%" height="450" src="{{ embed_video_url }}"
+                        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                </iframe>
+            {% elif is_direct_file %}
+                <video width="100%" height="450" controls style="border-radius: 8px; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <source src="{{ lesson.video_url }}" type="video/mp4">
+                    Ваш браузер не поддерживает встроенный плеер.
+                </video>
+            {% elif lesson.video_url %}
+                <div style="background-color: #f1f3f5; padding: 15px; border-radius: 4px; border-left: 4px solid #6c757d;">
+                    <p>Плеер не поддерживает автоматическое встраивание для этой ссылки. Вы можете посмотреть её напрямую:</p>
+                    <p><a href="{{ lesson.video_url }}" target="_blank" style="font-weight: bold; color: #007bff;">{{ lesson.video_url }}</a></p>
+                </div>
+            {% else %}
+                <p style="color: gray;">Преподаватель еще не прикрепил видеоматериалы к этому уроку.</p>
+            {% endif %}
+        </div>
+
         {% if lesson.content_text %}
-            <h3>Описание и конспект к лекции:</h3>
+            <h3>Конспект к лекции:</h3>
             <div class="content" style="font-size: 16px; line-height: 1.5;">{{ lesson.content_text|linebreaks }}</div>
         {% endif %}
 
     {% elif lesson.type == 'task' %}
-        <div class="task-block" style="background-color: #f9f9f9; padding: 20px; border-left: 5px solid #007bff; margin-bottom: 20px;">
+        <div class="task-block" style="background-color: #f9f9f9; padding: 20px; border-left: 5px solid #17a2b8; margin-bottom: 20px;">
             <h3>Условие задачи:</h3>
             <div class="content" style="font-size: 16px;">{{ lesson.content_text|linebreaks }}</div>
         </div>
 
-        <form method="post">
+        <hr>
+        <h3>Ваше решение (Формат PDF или Изображение):</h3>
+
+        {% if submission %}
+            <div style="padding: 15px; border-radius: 5px; margin-bottom: 20px;
+                background-color: {% if submission.is_checked %}#d4edda{% else %}#fff3cd{% endif %};
+                color: {% if submission.is_checked %}#155724{% else %}#856404{% endif %};">
+
+                <p><strong>Статус:</strong> {% if submission.is_checked %}Проверено преподавателем{% else %}Ожидает проверки{% endif %}</p>
+                <p>Вы загрузили файл: <a href="{{ submission.file.url }}" target="_blank">Открыть отправленное решение</a> (Отправлено: {{ submission.submitted_at|date:"d.m.Y H:i" }})</p>
+
+                {% if submission.is_checked %}
+                    <hr style="border-top: 1px solid #b2dba1;">
+                    <h4>Результаты проверки:</h4>
+                    <p><strong>Оценка:</strong> <span style="font-size: 18px; font-weight: bold;">{{ submission.grade }}</span></p>
+                    {% if submission.teacher_comment %}
+                        <p><strong>Комментарий учителя:</strong> {{ submission.teacher_comment|linebreaks }}</p>
+                    {% endif %}
+                    {% if submission.teacher_file %}
+                        <p><strong>Проверенный файл (с исправлениями):</strong> <a href="{{ submission.teacher_file.url }}" target="_blank" style="font-weight: bold;">Скачать файл учителя</a></p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px dashed #ccc; max-width: 500px;">
             {% csrf_token %}
             <p>
-                <strong>Введите ваш ответ:</strong> <br>
-                <input type="text" name="student_answer" placeholder="Ответ..." style="padding: 8px; width: 300px; margin-top: 5px;" required>
+                <label for="id_file"><strong>Выбрать файл решения:</strong></label><br><br>
+                {{ submission_form.file }}
             </p>
-            <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                Проверить задачу
+            <button type="submit" style="padding: 10px 20px; background-color: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
+                {% if submission %}Переотправить решение{% else %}Загрузить работу на проверку{% endif %}
             </button>
         </form>
 
@@ -99,13 +143,13 @@
                             <span style="color: green; font-weight: bold; font-size: 14px;">✓ Верно</span>
                         {% else %}
                             <span style="color: red; font-weight: bold; font-size: 14px;">
-                                ❌ Ошибка (Вы ввели: "{{ question.student_answer }}". Ожидался ответ: {{ question.correct_answer }})
+                                ❌ Ошибка (Ожидался ответ: {{ question.correct_answer }})
                             </span>
                         {% endif %}
                     {% endif %}
                 </div>
             {% empty %}
-                <p style="color: gray;">В этом тесте пока нет вопросов. Преподаватель еще не наполнил его.</p>
+                <p style="color: gray;">В этом тесте пока нет вопросов.</p>
             {% endfor %}
 
             {% if questions and not test_submitted %}
@@ -115,15 +159,9 @@
             {% endif %}
 
             {% if test_submitted %}
-                <div style="background-color: #e2f0d9; color: #385723; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #385723;">
-                    <h3>📊 Тест отправлен! (Всего попыток: {{ existing_result.attempts_count }})</h3>
-                    <p>Ваш текущий результат: <strong>{{ score }}</strong> из <strong>{{ total_questions }}</strong>.</p>
-                </div>
-            {% elif existing_result %}
-                <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #ffeeba;">
-                    <h3>📝 Вы уже проходили этот тест</h3>
-                    <p>Ваш последний результат: <strong>{{ existing_result.score }}</strong> из <strong>{{ existing_result.total_questions }}</strong> (Всего попыток: {{ existing_result.attempts_count }} | Дата: {{ existing_result.updated_at|date:"d.m.Y H:i" }}).</p>
-                </div>
+                <a href="{% url 'lesson_detail' lesson.id %}" style="display: inline-block; padding: 12px 25px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 3px; margin-top: 10px; font-size: 14px;">
+                    Пройти тест заново
+                </a>
             {% endif %}
         </form>
     {% endif %}

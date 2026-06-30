@@ -2,69 +2,89 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Главная страница — Моя Школа</title>
+    <title>Главная — Физико-Математическая LMS</title>
 </head>
 <body>
-    <header>
-        {% if user.is_authenticated %}
-            <p>Добро пожаловать, <strong>{{ user.username }}</strong>! (Роль: {{ user.profile.role }})</p>
+    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background-color: #f8f9fa; border-bottom: 1px solid #e3e6f0;">
+        <h1>Онлайн-Школа</h1>
+        <div>
+            {% if user.is_authenticated %}
+                Добро пожаловать, <strong>{{ user.username }}</strong>!
+                <span style="color: gray;">(Роль: {{ user.profile.get_role_display }})</span> |
 
-            {% if user.profile.role == 'teacher' %}
-                <p><a href="{% url 'teacher_dashboard' %}" style="font-weight: bold; color: green; text-decoration: none;">→ Панель учителя</a></p>
-            {% elif user.profile.role == 'super_teacher' %}
-                <p><a href="{% url 'super_teacher_dashboard' %}" style="font-weight: bold; color: blue; text-decoration: none;">→ Панель СуперУчителя</a></p>
-            {% endif %}
+                {% if user.profile.role == 'super_teacher' %}
+                    <a href="{% url 'super_teacher_dashboard' %}" style="font-weight: bold; color: #28a745;">Панель СуперУчителя</a> |
+                {% elif user.profile.role == 'teacher' %}
+                    <a href="{% url 'teacher_dashboard' %}" style="font-weight: bold; color: #007bff;">Кабинет Учителя</a> |
+                {% endif %}
 
+                <a href="{% url 'logout' %}">Выйти</a>
             {% else %}
-            <p>Вы зашли как гость. <a href="{% url 'login' %}">Войти</a> или <a href="{% url 'register' %}">Зарегистрироваться</a></p>
-        {% endif %}
+                <a href="{% url 'login' %}">Войти</a> |
+                <a href="{% url 'register' %}">Регистрация</a>
+            {% endif %}
+        </div>
     </header>
 
-    <hr>
+    <main style="padding: 20px; max-width: 1000px; margin: 0 auto;">
 
-    <h2>Список курсов</h2>
-    {% if courses %}
-        <ul>
-        {% for course in courses %}
-            <li>
-                <strong>{{ course }}</strong>
-            </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>Курсов пока нет.</p>
-    {% endif %}
+        <h2>📚 Доступные курсы</h2>
+        {% if courses %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px;">
+                {% for course in courses %}
+                    <div style="border: 1px solid #ccc; border-radius: 6px; padding: 15px; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        <a href="{% url 'course_detail' course.id %}" style="font-size: 18px; font-weight: bold; color: #007bff; text-decoration: none;">
+                            {{ course.title }}
+                        </a>
+                        <p style="color: #666; font-size: 14px; margin-top: 8px;">
+                            Включает в себя: <strong>{{ course.course_lessons.count }}</strong> занятий
+                        </p>
+                        <a href="{% url 'course_detail' course.id %}" style="display: inline-block; margin-top: 10px; font-size: 14px; color: #17a2b8; text-decoration: none; font-weight: bold;">
+                            Открыть программу курса →
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: gray;">Курсов пока нет.</p>
+        {% endif %}
 
-    <hr>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
 
-    <h2>Одиночные уроки (вне курсов)</h2>
-    {% if lessons %}
-        <ul>
-        {% for lesson in lessons %}
-            <li>
-                <strong>{{ lesson.title }}</strong> — Тип: {{ lesson.get_type_display }}
-                (Статус: {{ lesson.get_status_display }})
-            </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>Свободных уроков пока нет.</p>
-    {% endif %}
-    <h2>Одиночные уроки (вне курсов)</h2>
-    {% if lessons %}
-        <ul>
-        {% for lesson in lessons %}
-            <li>
-                <a href="{% url 'lesson_detail' lesson.id %}" style="font-weight: bold; color: #007bff; text-decoration: none;">
-                    {{ lesson.title }}
-                </a>
-                — Тип: {{ lesson.get_type_display }}
-                (Статус: {{ lesson.get_status_display }})
-            </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>Свободных уроков пока нет.</p>
-    {% endif %}
+        <h2>📄 Одиночные уроки (вне курсов)</h2>
+        {% if lessons %}
+            <ul style="list-style-type: none; padding-left: 0;">
+                {% for lesson in lessons %}
+                    <li style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <a href="{% url 'lesson_detail' lesson.id %}" style="font-size: 16px; font-weight: bold; color: #333; text-decoration: none; border-bottom: 1px dashed #007bff;">
+                                {{ lesson.title }}
+                            </a>
+                            <br>
+                            <small style="color: #6c757d;">
+                                Тип: <strong>{{ lesson.get_type_display }}</strong>
+                                {% if user.profile.role == 'super_teacher' %}
+                                    | Статус: <span style="color: #e83e8c;">{{ lesson.get_status_display }}</span>
+                                {% endif %}
+                            </small>
+                        </div>
+
+                        <div>
+                            <a href="{% url 'lesson_detail' lesson.id %}" style="background-color: #f1f3f5; color: #495057; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 14px;">
+                                Начать изучение
+                            </a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="color: gray;">Свободных уроков в открытом доступе пока нет.</p>
+        {% endif %}
+
+    </main>
+
+    <footer style="margin-top: 50px; text-align: center; color: #aaa; font-size: 12px; padding: 20px 0; border-top: 1px solid #eee;">
+        &copy; 2026 Физико-Математическая Образовательная Платформа (LMS)
+    </footer>
 </body>
 </html>

@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import Lesson, Course, Question, Choice, Profile
 from django.forms import inlineformset_factory
-
+from .models import Lesson, TaskSubmission
 
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -41,7 +41,8 @@ class TeacherLessonCreateForm(forms.ModelForm):
 class SuperLessonCreateForm(forms.ModelForm):
     class Meta:
         model = Lesson
-        fields = ['title', 'type', 'status', 'content_text', 'video_url', 'correct_answer', 'allowed_students']
+        # Убедись, что здесь тоже НЕТ поля 'correct_answer'
+        fields = ['title', 'type', 'course', 'status', 'content_text', 'video_url', 'allowed_students']
         widgets = {
             'content_text': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Введите текст лекции...'}),
             'video_url': forms.URLInput(attrs={'placeholder': 'https://example.com/video'}),
@@ -96,3 +97,27 @@ LessonQuestionFormSet = inlineformset_factory(
     extra=10,
     can_delete=True
 )
+
+class LessonEditForm(forms.ModelForm):
+    class Meta:
+        model = Lesson
+        fields = ['title', 'type', 'course', 'content_text', 'video_url']
+        widgets = {
+            'title': forms.TextInput(attrs={'style': 'width: 100%; padding: 8px;'}),
+            'content_text': forms.Textarea(attrs={'rows': 10, 'style': 'width: 100%;'}),
+            'video_url': forms.TextInput(attrs={'style': 'width: 100%;', 'placeholder': 'Ссылка на YouTube/VK'}),
+        }
+
+class StudentSubmissionForm(forms.ModelForm):
+    class Meta:
+        model = TaskSubmission
+        fields = ['file']
+
+class TeacherCheckForm(forms.ModelForm):
+    class Meta:
+        model = TaskSubmission
+        fields = ['grade', 'teacher_comment', 'teacher_file']
+        widgets = {
+            'grade': forms.TextInput(attrs={'placeholder': 'Например: 5, 10/10, Зачет'}),
+            'teacher_comment': forms.Textarea(attrs={'rows': 4, 'style': 'width: 100%;', 'placeholder': 'Ваш отзыв на работу...'}),
+        }

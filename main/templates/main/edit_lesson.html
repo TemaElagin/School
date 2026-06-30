@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование: {{ lesson.title }}</title>
+</head>
+<body>
+    <p><a href="{% url 'lesson_detail' lesson.id %}">← Отмена</a></p>
+    <hr>
+    <h1>Редактирование урока: "{{ lesson.title }}"</h1>
+
+    <form method="post" style="max-width: 600px;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer;">Сохранить изменения</button>
+    </form>
+</body>
+</html>

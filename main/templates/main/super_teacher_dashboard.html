@@ -39,7 +39,7 @@
             <li style="margin-bottom: 15px;">
                 <strong>{{ course.title }}</strong>
 
-                <form method="post" style="display: inline; margin-left: 15px;" onsubmit="return confirm('Точно удалить этот курс? Уроки внутри курса не удалятся, а станут Открытыми.');">
+                <form method="post" style="display: inline; margin-left: 15px;" onsubmit="return confirm('Точно удалить этот курс? Уроки внутри курса не удалятся.');">
                     {% csrf_token %}
                     <input type="hidden" name="course_id" value="{{ course.id }}">
                     <button type="submit" name="delete_course" style="color: red; font-size: 12px;">Удалить курс</button>
@@ -81,7 +81,7 @@
                         <small style="color: gray;">Тип: {{ lesson.get_type_display }}</small>
 
                         {% if lesson.type == 'test' %}
-                            <br><a href="{% url 'manage_test' lesson.id %}" style="color: #007bff; font-size: 12px; font-weight: bold;">Настройка теста (Вопросы)</a>
+                            <br><a href="{% url 'manage_test' lesson.id %}" style="color: #007bff; font-size: 12px; font-weight: bold;">Настройка вопросов теста</a>
                         {% endif %}
                     </td>
 
@@ -113,9 +113,6 @@
                             </select>
                             <input type="hidden" name="change_status" value="1">
                         </form>
-                        {% if lesson.course %}
-                            <br><small style="color: red;">(Заблокировано курсом: всегда Открытый)</small>
-                        {% endif %}
                     </td>
 
                     <td>
@@ -125,8 +122,7 @@
                                 <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
                                 <select name="allowed_students" multiple style="height: 50px; font-size: 11px;">
                                     {% for profile in profiles %}
-                                        <option value="{{ profile.user.id }}"
-                                            {% if profile.user in lesson.allowed_students.all %}selected{% endif %}>
+                                        <option value="{{ profile.user.id }}" {% if profile.user in lesson.allowed_students.all %}selected{% endif %}>
                                             {{ profile.user.username }}
                                         </option>
                                     {% endfor %}
@@ -134,7 +130,7 @@
                                 <br><button type="submit" name="change_allowed_students" style="font-size: 11px; margin-top: 2px;">Сохранить доступ</button>
                             </form>
                         {% else %}
-                            <span style="color: gray; font-size: 12px;">Не требуется для этого статуса</span>
+                            <span style="color: gray; font-size: 12px;">Не требуется</span>
                         {% endif %}
                     </td>
 
@@ -155,14 +151,47 @@
 
     <hr>
 
-    <h2>Журнал успеваемости (Последние результаты тестов)</h2>
+    <h2>📥 Задания, ожидающие проверки рукописного ввода (Задачники)</h2>
+    {% if unchecked_submissions %}
+        <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%; text-align: left; margin-bottom: 20px;">
+            <thead style="background-color: #fff3cd;">
+                <tr>
+                    <th>Студент</th>
+                    <th>Урок / Задача</th>
+                    <th>Дата отправки</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in unchecked_submissions %}
+                <tr>
+                    <td><strong>{{ sub.student.username }}</strong></td>
+                    <td>{{ sub.lesson.title }}</td>
+                    <td>{{ sub.submitted_at|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'check_submission' sub.id %}" style="background-color: #007bff; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-weight: bold; font-size: 13px;">
+                            🔍 Проверить работу
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: gray;">Все присланные файлы проверены.</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>📊 Журнал успеваемости (Результаты автоматических тестов)</h2>
     {% if test_results %}
         <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%; text-align: left;">
             <thead>
                 <tr style="background-color: #f2f2f2;">
                     <th>Ученик (Логин)</th>
                     <th>Тест / Урок</th>
-                    <th>Кол-во попыток</th> <th>Последний результат</th>
+                    <th>Кол-во попыток</th>
+                    <th>Последний результат</th>
                     <th>Дата прохождения</th>
                 </tr>
             </thead>
@@ -171,7 +200,8 @@
                 <tr>
                     <td><strong>{{ res.student.username }}</strong></td>
                     <td>{{ res.lesson.title }}</td>
-                    <td>Пройдено раз: {{ res.attempts_count }}</td> <td>
+                    <td>Пройдено раз: {{ res.attempts_count }}</td>
+                    <td>
                         <strong style="color: {% if res.score == res.total_questions %}green{% else %}orange{% endif %};">
                             {{ res.score }} из {{ res.total_questions }}
                         </strong>
@@ -192,7 +222,7 @@
         <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
             <thead>
                 <tr style="background-color: #f2f2f2;">
-                    <th>Имя пользователя (Логин)</th>
+                    <th>Имя пользователя</th>
                     <th>Текущая роль</th>
                     <th>Сменить роль</th>
                 </tr>
@@ -200,14 +230,8 @@
             <tbody>
                 {% for profile in profiles %}
                 <tr>
-                    <td><strong>{{ profile.user.username }}</strong> ({{ profile.user.email }})</td>
-                    <td>
-                        <span style="padding: 3px 8px; border-radius: 3px; font-weight: bold;
-                            {% if profile.role == 'teacher' %} background-color: #d4edda; color: #155724;
-                            {% else %} background-color: #e2e3e5; color: #383d41; {% endif %}">
-                            {{ profile.get_role_display }}
-                        </span>
-                    </td>
+                    <td><strong>{{ profile.user.username }}</strong></td>
+                    <td>{{ profile.get_role_display }}</td>
                     <td>
                         <form method="post" style="display: inline;">
                             {% csrf_token %}
@@ -223,8 +247,6 @@
                 {% endfor %}
             </tbody>
         </table>
-    {% else %}
-        <p>Других пользователей в системе пока нет.</p>
     {% endif %}
 </body>
 </html>
