@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Прогресс учеников{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold">Успеваемость ваших учеников</h1>
+        <a href="{% url 'teacher_dashboard' %}" class="text-sm font-medium text-slate-500 hover:text-brand-600 dark:hover:text-brand-400">← Назад в кабинет</a>
+    </div>
+
+    {% if progress_data %}
+        <div class="space-y-8">
+            {% for data in progress_data %}
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+
+                <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <span class="text-2xl">🎓</span> {{ data.student.username }}
+                    </h2>
+                    <span class="text-xs text-slate-500 font-mono">{{ data.student.email }}</span>
+                </div>
+
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                    <div>
+                        <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">Результаты тестов</h3>
+                        {% if data.test_results %}
+                            <ul class="space-y-3">
+                                {% for res in data.test_results %}
+                                <li class="flex justify-between items-center text-sm">
+                                    <a href="{% url 'lesson_detail' res.lesson.id %}" class="hover:underline text-brand-600 dark:text-brand-400">{{ res.lesson.title }}</a>
+                                    <span class="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-md font-bold">
+                                        {{ res.score }} / {{ res.total_questions }}
+                                    </span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-sm text-slate-500 italic">Тесты еще не проходились</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">Отправленные задачи</h3>
+                        {% if data.task_submissions %}
+                            <ul class="space-y-3">
+                                {% for sub in data.task_submissions %}
+                                <li class="flex flex-col sm:flex-row justify-between sm:items-center text-sm gap-2">
+                                    <a href="{% url 'lesson_detail' sub.lesson.id %}" class="hover:underline text-brand-600 dark:text-brand-400">{{ sub.lesson.title }}</a>
+                                    {% if sub.is_checked %}
+                                        <span class="px-2 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-md font-bold shrink-0 text-center">
+                                            {{ sub.grade }}
+                                        </span>
+                                    {% else %}
+                                        <a href="{% url 'check_submission' sub.id %}" class="px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-md font-bold hover:opacity-80 shrink-0 text-center">
+                                            Проверить
+                                        </a>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-sm text-slate-500 italic">Задачи не отправлялись</p>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <span class="text-4xl">📭</span>
+            <h3 class="text-xl font-bold mt-4">У вас пока нет учеников</h3>
+            <p class="text-slate-500 mt-2">Передайте свой инвайт-код ученикам, чтобы они ввели его при регистрации.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

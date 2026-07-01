@@ -1,123 +1,83 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Lesson, Course, Question, Choice, Profile
-from django.forms import inlineformset_factory
-from .models import Lesson, TaskSubmission
+from .models import Lesson, Course, Question, TaskSubmission, Profile
+
 
 class RegistrationForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput)
-    password_confirm = forms.CharField(widget=forms.PasswordInput)
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+    teacher_invite_code = forms.CharField(
+        max_length=15,
+        required=False,
+        label="Код вашего учителя (если есть)",
+        help_text="Оставьте пустым, если вы учитесь самостоятельно"
+    )
 
     class Meta:
         model = User
-        fields = ['username', 'password']
+        fields = ['username', 'email', 'password']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-input'}),
+            'email': forms.EmailInput(attrs={'class': 'form-input'}),
+        }
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
-            Profile.objects.create(user=user, role='student')
+            # Проверяем код учителя при регистрации
+            code = self.cleaned_data.get('teacher_invite_code')
+            profile, created = Profile.objects.get_or_create(user=user)
+            if code:
+                try:
+                    teacher_profile = Profile.objects.get(teacher_code=code, role__in=['teacher', 'super_teacher'])
+                    profile.my_teacher = teacher_profile.user
+                    profile.save()
+                except Profile.DoesNotExist:
+                    pass  # Если код неверный, просто регистрируем без учителя
         return user
 
-# class LessonCreateForm(forms.ModelForm):
-#     class Meta:
-#         model = Lesson
-#         fields = ['title', 'type', 'status', 'allowed_students']
-#         widgets = {
-#             'allowed_students': forms.SelectMultiple(attrs={'class': 'form-control'}),
-#         }
 
-
-class TeacherLessonCreateForm(forms.ModelForm):
+class LessonCreateOrEditForm(forms.ModelForm):
     class Meta:
         model = Lesson
-        fields = ['title', 'type', 'content_text', 'video_url', 'correct_answer']
-        widgets = {
-            'content_text': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Введите текст лекции или условие задачи...'}),
-            'video_url': forms.URLInput(attrs={'placeholder': 'https://example.com/video'}),
-        }
+        # Добавили allowed_students в форму
+        fields = ['course', 'title', 'content', 'lesson_file', 'type', 'status', 'video_url', 'allowed_students']
 
-class SuperLessonCreateForm(forms.ModelForm):
-    class Meta:
-        model = Lesson
-        # Убедись, что здесь тоже НЕТ поля 'correct_answer'
-        fields = ['title', 'type', 'course', 'status', 'content_text', 'video_url', 'allowed_students']
-        widgets = {
-            'content_text': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Введите текст лекции...'}),
-            'video_url': forms.URLInput(attrs={'placeholder': 'https://example.com/video'}),
-            'allowed_students': forms.SelectMultiple(attrs={'class': 'form-control'}),
-        }
+    def __init__(self, *args, **kwargs):
+        # Извлекаем пользователя из аргументов (если передан)
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        # Настройка поля доступов
+        self.fields['allowed_students'].required = False
+        self.fields['allowed_students'].label = "Доступ ученикам (только для приватных уроков)"
+        self.fields['allowed_students'].help_text = "Зажмите Ctrl (или Cmd на Mac), чтобы выбрать нескольких учеников."
+
+        # Фильтруем список учеников в зависимости от роли
+        if user:
+            if user.profile.role == 'super_teacher':
+                # СуперУчитель может выдать доступ любому ученику
+                self.fields['allowed_students'].queryset = User.objects.filter(profile__role='student')
+            elif user.profile.role == 'teacher':
+                # Обычный учитель видит только тех, кто привязан к нему
+                self.fields['allowed_students'].queryset = User.objects.filter(profile__my_teacher=user,
+                                                                               profile__role='student')
 
 
 class CourseCreateForm(forms.ModelForm):
-    lessons = forms.ModelMultipleChoiceField(
-        queryset=Lesson.objects.all(),
-        required=False,
-        label="Выбрать уроки для курса",
-        widget=forms.CheckboxSelectMultiple
-    )
-
     class Meta:
         model = Course
-        fields = ['title', 'lessons']
+        fields = ['title', 'description']
 
-    def save(self, commit=True):
-        course = super().save(commit=commit)
-        if commit:
-            Lesson.objects.filter(course=course).update(course=None)
-            chosen_lessons = self.cleaned_data['lessons']
-            for lesson in chosen_lessons:
-                lesson.course = course
-                lesson.save()
-        return course
-
-
-class EditAllowedStudentsForm(forms.ModelForm):
-    class Meta:
-        model = Lesson
-        fields = ['allowed_students']
-        widgets = {
-            'allowed_students': forms.SelectMultiple(attrs={'style': 'height: 60px; width: 150px;'}),
-        }
-
-class QuestionForm(forms.ModelForm):
-    class Meta:
-        model = Question
-        fields = ['text', 'correct_answer'] # Вернули обратно
-        widgets = {
-            'text': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Текст вопроса (можно с LaTeX)...'}),
-            'correct_answer': forms.TextInput(attrs={'placeholder': 'Эталонный ответ'}),
-        }
-
-LessonQuestionFormSet = inlineformset_factory(
-    Lesson,
-    Question,
-    form=QuestionForm,
-    extra=25,
-    can_delete=True
-)
-
-class LessonEditForm(forms.ModelForm):
-    class Meta:
-        model = Lesson
-        fields = ['title', 'type', 'course', 'content_text', 'video_url']
-        widgets = {
-            'title': forms.TextInput(attrs={'style': 'width: 100%; padding: 8px;'}),
-            'content_text': forms.Textarea(attrs={'rows': 10, 'style': 'width: 100%;'}),
-            'video_url': forms.TextInput(attrs={'style': 'width: 100%;', 'placeholder': 'Ссылка на YouTube/VK'}),
-        }
 
 class StudentSubmissionForm(forms.ModelForm):
     class Meta:
         model = TaskSubmission
-        fields = ['file']
+        fields = ['file', 'comment']
+
 
 class TeacherCheckForm(forms.ModelForm):
     class Meta:
         model = TaskSubmission
         fields = ['grade', 'teacher_comment', 'teacher_file']
-        widgets = {
-            'grade': forms.TextInput(attrs={'placeholder': 'Например: 5, 10/10, Зачет'}),
-            'teacher_comment': forms.Textarea(attrs={'rows': 4, 'style': 'width: 100%;', 'placeholder': 'Ваш отзыв на работу...'}),
-        }

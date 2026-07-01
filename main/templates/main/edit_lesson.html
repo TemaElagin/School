@@ -2,15 +2,48 @@
 {% block title %}Редактирование: {{ lesson.title }}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto">
-    <a href="{% url 'lesson_detail' lesson.id %}" class="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">← Отмена</a>
-    <h1 class="text-2xl font-bold mt-4 mb-6">Редактирование урока: "{{ lesson.title }}"</h1>
-    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 django-form-wrapper">
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="w-full mt-4 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700">Сохранить изменения</button>
-        </form>
-    </div>
+<div class="max-w-4xl mx-auto bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+    <h1 class="text-2xl font-bold mb-6">Редактирование урока: <span class="text-brand-600 dark:text-brand-400">{{ lesson.title }}</span></h1>
+
+    <form method="post" enctype="multipart/form-data" class="django-form-wrapper space-y-6">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        {% if lesson.type == 'test' %}
+        <div class="p-6 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl">
+            <h3 class="font-bold text-lg mb-4">Конструктор вопросов</h3>
+            <div id="questions-container" class="space-y-3">
+                {% for q in lesson.questions.all %}
+                <div class="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg relative group">
+                    <button type="button" class="absolute top-2 right-2 text-rose-500 font-bold opacity-0 group-hover:opacity-100 transition" onclick="this.parentElement.remove()">✕</button>
+                    <input type="text" name="q_text[]" value="{{ q.text }}" placeholder="Текст вопроса (поддерживает LaTeX)" class="w-full mb-2 p-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded" required>
+                    <input type="text" name="q_ans[]" value="{{ q.correct_answer }}" placeholder="Правильный ответ" class="w-full p-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-800/50 rounded" required>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" onclick="addQuestionRow()" class="mt-4 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+                + Добавить вопрос
+            </button>
+        </div>
+        {% endif %}
+
+        <div class="flex gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-medium rounded-lg transition-colors">Сохранить изменения</button>
+            <a href="{% url 'lesson_detail' lesson.id %}" class="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-medium rounded-lg transition-colors">Отмена</a>
+        </div>
+    </form>
 </div>
+
+<script>
+    function addQuestionRow() {
+        const html = `
+            <div class="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg relative group">
+                <button type="button" class="absolute top-2 right-2 text-rose-500 font-bold opacity-0 group-hover:opacity-100 transition" onclick="this.parentElement.remove()">✕</button>
+                <input type="text" name="q_text[]" placeholder="Текст вопроса (поддерживает LaTeX)" class="w-full mb-2 p-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded" required>
+                <input type="text" name="q_ans[]" placeholder="Правильный ответ" class="w-full p-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-800/50 rounded" required>
+            </div>
+        `;
+        document.getElementById('questions-container').insertAdjacentHTML('beforeend', html);
+    }
+</script>
 {% endblock %}

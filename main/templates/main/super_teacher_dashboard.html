@@ -1,345 +1,254 @@
 {% extends "base.html" %}
-
-{% block title %}Панель СуперУчителя — MySchool{% endblock %}
+{% block title %}Панель СуперУчителя{% endblock %}
 
 {% block content %}
-<style>
-    .django-form-wrapper p { margin-bottom: 1rem; }
-    .django-form-wrapper label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #475569; }
-    html.dark .django-form-wrapper label { color: #cbd5e1; }
-    .django-form-wrapper input[type="text"], 
-    .django-form-wrapper input[type="url"],
-    .django-form-wrapper textarea,
-    .django-form-wrapper select {
-        width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #f8fafc; color: #0f172a; transition: all 0.2s;
-    }
-    html.dark .django-form-wrapper input[type="text"], 
-    html.dark .django-form-wrapper input[type="url"],
-    html.dark .django-form-wrapper textarea,
-    html.dark .django-form-wrapper select {
-        border-color: #475569; background-color: #0f172a; color: #f1f5f9;
-    }
-    .django-form-wrapper input:focus, .django-form-wrapper textarea:focus, .django-form-wrapper select:focus {
-        outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-    }
-</style>
+<div class="max-w-7xl mx-auto space-y-8">
 
-<div class="max-w-7xl mx-auto space-y-10">
-
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Панель СуперУчителя</h1>
-        <a href="{% url 'index' %}" class="inline-flex items-center px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-            На главную
-        </a>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <span class="text-brand-500">📄</span> Создать новый урок
-            </h2>
-            <form method="post" class="django-form-wrapper">
-                {% csrf_token %}
-                {{ lesson_form.as_p }}
-                <button type="submit" name="create_lesson" class="mt-4 w-full px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
-                    Создать урок
-                </button>
-            </form>
+    <!-- Шапка и свой инвайт-код -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 dark:bg-slate-950 p-6 rounded-2xl text-white shadow-md">
+        <div>
+            <h1 class="text-3xl font-bold flex items-center gap-3">
+                <span>👑</span> Панель СуперУчителя
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">Полный контроль над пользователями, курсами и уроками платформы.</p>
         </div>
 
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <span class="text-brand-500">📚</span> Создать новый курс
-            </h2>
-            <form method="post" class="django-form-wrapper">
+        <div class="bg-slate-800 dark:bg-slate-900 p-3 rounded-xl border border-slate-700">
+            <form method="post" class="flex items-center gap-3">
                 {% csrf_token %}
-                {{ course_form.as_p }}
-                <button type="submit" name="create_course" class="mt-4 w-full px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
-                    Создать курс
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <section>
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-            <span class="text-brand-500">📂</span> Управление курсами
-        </h2>
-        {% if courses %}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {% for course in courses %}
-                    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm flex flex-col h-full">
-                        <div class="flex justify-between items-start mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
-                            <div>
-                                <h3 class="text-xl font-bold text-slate-900 dark:text-white">{{ course.title }}</h3>
-                                <p class="text-xs text-slate-500 mt-1">Перетащите уроки, чтобы изменить порядок</p>
-                            </div>
-                            <form method="post" onsubmit="return confirm('Точно удалить курс?');">
-                                {% csrf_token %}
-                                <input type="hidden" name="course_id" value="{{ course.id }}">
-                                <button type="submit" name="delete_course" class="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 dark:bg-rose-900/20 rounded-lg transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                </button>
-                            </form>
-                        </div>
-
-                        <div class="flex-grow">
-                            <ul class="sortable-lesson-list space-y-2" data-course-id="{{ course.id }}">
-                                {% for lesson in course.course_lessons.all %}
-                                    <li class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl" data-lesson-id="{{ lesson.id }}">
-                                        <div class="drag-handle cursor-grab active:cursor-grabbing text-slate-400 hover:text-brand-500 p-1">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
-                                        </div>
-                                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 truncate flex-grow">{{ lesson.title }}</span>
-                                        <span class="text-[10px] uppercase font-bold px-2 py-1 rounded bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-600">
-                                            {{ lesson.get_type_display }}
-                                        </span>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
+                <input type="hidden" name="profile_id" value="{{ user.profile.id }}">
+                <input type="hidden" name="new_role" value="super_teacher">
+                <div class="flex flex-col">
+                    <label class="text-xs text-slate-400 font-medium mb-1">Мой инвайт-код:</label>
+                    <div class="flex gap-2">
+                        <input type="text" name="teacher_code" value="{{ user.profile.teacher_code|default:'' }}" placeholder="Например: SUPER-1" class="w-32 px-3 py-1.5 text-sm bg-slate-950 border border-slate-600 rounded-lg focus:outline-none focus:border-brand-500 transition text-white">
+                        <button type="submit" name="change_role_and_code" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 rounded-lg text-sm font-bold transition">Сохранить</button>
                     </div>
-                {% endfor %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+
+        <!-- ЛЕВАЯ КОЛОНКА -->
+        <div class="xl:col-span-1 space-y-8">
+
+            <!-- Блок: Управление курсами (с drag-and-drop) -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h2 class="text-xl font-bold mb-4">Курсы и порядок уроков</h2>
+
+                <form method="post" class="django-form-wrapper space-y-4 mb-6">
+                    {% csrf_token %}
+                    {{ course_form.as_p }}
+                    <button type="submit" name="create_course" class="w-full py-2 bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 font-bold rounded-lg hover:opacity-90 transition">
+                        + Создать курс
+                    </button>
+                </form>
+
+                {% if courses %}
+                    <div class="space-y-5">
+                        {% for course in courses %}
+                            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                <!-- Шапка курса с редактированием названия -->
+                                <div class="flex justify-between items-center p-3 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                    <form method="post" class="flex gap-2 items-center flex-grow mr-2">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="course_id" value="{{ course.id }}">
+                                        <input type="text" name="title" value="{{ course.title }}" class="bg-transparent border-b border-transparent hover:border-slate-300 focus:border-brand-500 w-full text-sm font-bold p-1 outline-none transition-colors">
+                                        <button type="submit" name="edit_course" class="px-2 py-1 text-xs font-bold bg-brand-100 text-brand-700 hover:bg-brand-200 rounded transition">ОК</button>
+                                    </form>
+
+                                    <form method="post" onsubmit="return confirm('Удалить курс? Уроки останутся, но станут без курса.');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="course_id" value="{{ course.id }}">
+                                        <button type="submit" name="delete_course" class="text-rose-500 hover:text-rose-700 font-bold px-2 text-lg leading-none">×</button>
+                                    </form>
+                                </div>
+
+                                <!-- Список уроков для перетаскивания -->
+                                <div class="p-2 course-lessons-list space-y-1 min-h-[40px]" data-course-id="{{ course.id }}">
+                                    {% for lesson in course.course_lessons.all %}
+                                        <div data-id="{{ lesson.id }}" class="flex items-center gap-3 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded cursor-move hover:border-brand-300 transition-colors shadow-sm text-sm group">
+                                            <span class="text-slate-300 group-hover:text-brand-400">⣿</span>
+                                            <span class="font-medium text-slate-700 dark:text-slate-300 truncate">{{ lesson.title }}</span>
+                                        </div>
+                                    {% empty %}
+                                        <p class="text-xs text-slate-400 text-center py-2 italic">В этом курсе пока нет уроков</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
-        {% endif %}
-    </section>
 
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+            <!-- Блок: Глобальные проверки -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-rose-200 dark:border-rose-900/30 shadow-sm">
+                <h2 class="text-xl font-bold text-rose-600 dark:text-rose-400 mb-4 flex items-center gap-2">
+                    <span>🔴 Требуют проверки</span>
+                    <span class="px-2 py-0.5 text-xs bg-rose-100 dark:bg-rose-900/50 rounded-full">{{ unchecked_submissions.count }}</span>
+                </h2>
+
+                {% if unchecked_submissions %}
+                    <div class="space-y-3">
+                        {% for sub in unchecked_submissions %}
+                            <div class="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                                <div>
+                                    <p class="font-medium text-sm">{{ sub.student.username }} <span class="text-slate-400 font-normal">— {{ sub.lesson.title }}</span></p>
+                                    <p class="text-xs text-slate-500 mt-1">От: {{ sub.student.profile.my_teacher.username|default:"Без учителя" }}</p>
+                                </div>
+                                <a href="{% url 'check_submission' sub.id %}" class="text-center w-full py-1.5 bg-brand-100 text-brand-700 hover:bg-brand-200 dark:bg-brand-900/30 dark:text-brand-400 dark:hover:bg-brand-900/50 rounded-md text-sm font-semibold transition">
+                                    Проверить
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-sm text-slate-500">Глобальная очередь пуста.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА -->
+        <div class="xl:col-span-2 space-y-8">
+
+            <!-- Блок: Управление пользователями -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto">
+                <h2 class="text-xl font-bold mb-4">Пользователи и Инвайт-коды</h2>
+                <table class="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                        <tr class="border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500">
+                            <th class="py-3 px-2">Пользователь</th>
+                            <th class="py-3 px-2">Текущая роль</th>
+                            <th class="py-3 px-2">Назначить роль / Код</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50 text-sm">
+                        {% for p in profiles %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition">
+                            <td class="py-3 px-2 font-medium">{{ p.user.username }}</td>
+                            <td class="py-3 px-2 text-slate-500">{{ p.get_role_display }}</td>
+                            <td class="py-2 px-2">
+                                <form method="post" class="flex gap-2 items-center">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="profile_id" value="{{ p.id }}">
+                                    <select name="new_role" class="px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-brand-500">
+                                        <option value="student" {% if p.role == 'student' %}selected{% endif %}>Ученик</option>
+                                        <option value="teacher" {% if p.role == 'teacher' %}selected{% endif %}>Учитель</option>
+                                        <option value="super_teacher" {% if p.role == 'super_teacher' %}selected{% endif %}>СуперУчитель</option>
+                                    </select>
+                                    <input type="text" name="teacher_code" value="{{ p.teacher_code|default:'' }}" placeholder="Код (пусто = нет)" class="w-32 px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-brand-500">
+                                    <button type="submit" name="change_role_and_code" class="px-3 py-1.5 text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 rounded-lg transition">
+                                        Применить
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Блок: Глобальный контроль уроков -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">База всех уроков</h2>
+                    <a href="{% url 'teacher_dashboard' %}" class="text-sm font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 transition">
+                        + Создать урок (в Кабинете)
+                    </a>
+                </div>
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500">
+                            <th class="py-3 px-2">Название и Автор</th>
+                            <th class="py-3 px-2">Статус</th>
+                            <th class="py-3 px-2">Курс</th>
+                            <th class="py-3 px-2 text-right">Управление</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50 text-sm">
+                        {% for lesson in lessons %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition">
+                            <td class="py-3 px-2">
+                                <a href="{% url 'lesson_detail' lesson.id %}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline block">{{ lesson.title }}</a>
+                                <span class="text-xs text-slate-400">Автор: {{ lesson.author.username }}</span>
+                            </td>
+
+                            <td class="py-3 px-2">
+                                <form method="post" class="flex items-center gap-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                                    <select name="new_status" class="px-2 py-1 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md outline-none">
+                                        <option value="public" {% if lesson.status == 'public' %}selected{% endif %}>Публичный</option>
+                                        <option value="private" {% if lesson.status == 'private' %}selected{% endif %}>Приватный</option>
+                                        <option value="lock" {% if lesson.status == 'lock' %}selected{% endif %}>Закрытый</option>
+                                        <option value="superlock" {% if lesson.status == 'superlock' %}selected{% endif %}>Суперзамок</option>
+                                    </select>
+                                    <button type="submit" name="change_status" class="text-xs font-bold text-slate-500 hover:text-brand-600 transition">✓</button>
+                                </form>
+                            </td>
+
+                            <td class="py-3 px-2">
+                                <form method="post" class="flex items-center gap-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                                    <select name="course_id" class="px-2 py-1 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md outline-none w-28">
+                                        <option value="">Без курса</option>
+                                        {% for c in courses %}
+                                            <option value="{{ c.id }}" {% if lesson.course.id == c.id %}selected{% endif %}>{{ c.title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" name="change_course" class="text-xs font-bold text-slate-500 hover:text-brand-600 transition">✓</button>
+                                </form>
+                            </td>
+
+                            <td class="py-3 px-2 text-right">
+                                <div class="flex items-center justify-end gap-3">
+                                    <a href="{% url 'edit_lesson' lesson.id %}" class="text-slate-400 hover:text-brand-600 transition">✏️</a>
+                                    <form method="post" onsubmit="return confirm('Точно удалить этот урок безвозвратно?');" class="inline-block">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                                        <button type="submit" name="delete_lesson" class="text-slate-400 hover:text-rose-500 transition font-bold text-lg">×</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Скрипт для Drag and Drop сортировки -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
-    document.querySelectorAll('.sortable-lesson-list').forEach(list => {
-        new Sortable(list, {
-            animation: 150,
-            handle: '.drag-handle',
-            onEnd: function (evt) {
-                const courseId = evt.from.dataset.courseId;
-                const newOrder = Array.from(evt.from.children).map(li => li.dataset.lessonId);
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.course-lessons-list').forEach(function(list) {
+            new Sortable(list, {
+                animation: 150,
+                ghostClass: 'opacity-50',
+                onEnd: function (evt) {
+                    let order = Array.from(list.children).map(el => el.dataset.id);
 
-                fetch("{% url 'update_lesson_order' %}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({ new_order: newOrder })
-                });
-            }
+                    fetch('{% url "update_lesson_order" %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({new_order: order})
+                    }).then(response => {
+                        if (!response.ok) {
+                            console.error('Ошибка при сохранении сортировки');
+                        }
+                    });
+                }
+            });
         });
     });
 </script>
-
-    <section>
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-            <span class="text-brand-500">⚙️</span> Контроль уроков
-        </h2>
-        {% if lessons %}
-            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
-                            <tr>
-                                <th class="px-6 py-4 font-semibold">Название / Тип</th>
-                                <th class="px-6 py-4 font-semibold">Привязка к курсу</th>
-                                <th class="px-6 py-4 font-semibold">Статус</th>
-                                <th class="px-6 py-4 font-semibold">Доступ (Private)</th>
-                                <th class="px-6 py-4 font-semibold text-right">Действие</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
-                            {% for lesson in lessons %}
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td class="px-6 py-4">
-                                    <div class="font-bold text-slate-900 dark:text-white">{{ lesson.title }}</div>
-                                    <div class="text-xs text-slate-500 mt-1">{{ lesson.get_type_display }}</div>
-                                    {% if lesson.type == 'test' %}
-                                        <a href="{% url 'manage_test' lesson.id %}" class="inline-block mt-2 text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400">Настроить вопросы →</a>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 django-form-wrapper">
-                                    <form method="post">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
-                                        <input type="hidden" name="change_course" value="1">
-                                        <select name="course_id" onchange="this.form.submit()" class="text-sm py-1.5 px-3">
-                                            <option value="">-- Без курса --</option>
-                                            {% for course in courses %}
-                                                <option value="{{ course.id }}" {% if lesson.course_id == course.id %}selected{% endif %}>{{ course.title }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </form>
-                                </td>
-                                <td class="px-6 py-4 django-form-wrapper">
-                                    <form method="post">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
-                                        <input type="hidden" name="change_status" value="1">
-                                        <select name="new_status" onchange="this.form.submit()" class="text-sm py-1.5 px-3">
-                                            <option value="public" {% if lesson.status == 'public' %}selected{% endif %}>Открытый</option>
-                                            <option value="private" {% if lesson.status == 'private' %}selected{% endif %}>Приватный</option>
-                                            <option value="lock" {% if lesson.status == 'lock' %}selected{% endif %}>Закрытый</option>
-                                            <option value="superlock" {% if lesson.status == 'superlock' %}selected{% endif %}>Скрыт</option>
-                                        </select>
-                                    </form>
-                                </td>
-                                <td class="px-6 py-4 django-form-wrapper">
-                                    {% if lesson.status == 'private' %}
-                                        <form method="post" class="flex flex-col gap-2">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
-                                            <select name="allowed_students" multiple class="text-xs py-1 h-16">
-                                                {% for profile in profiles %}
-                                                    <option value="{{ profile.user.id }}" {% if profile.user in lesson.allowed_students.all %}selected{% endif %}>{{ profile.user.username }}</option>
-                                                {% endfor %}
-                                            </select>
-                                            <button type="submit" name="change_allowed_students" class="text-xs px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded hover:bg-slate-300 transition-colors">Сохранить</button>
-                                        </form>
-                                    {% else %}
-                                        <span class="text-slate-400 italic text-xs">Не требуется</span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <form method="post" onsubmit="return confirm('Точно удалить урок?');">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
-                                        <button type="submit" name="delete_lesson" class="text-sm font-semibold text-rose-500 hover:text-rose-700 transition-colors">Удалить</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        {% else %}
-            <div class="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-500">В системе пока нет уроков.</div>
-        {% endif %}
-    </section>
-
-    <section>
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-            <span class="text-amber-500">📥</span> Ожидают проверки
-        </h2>
-        {% if unchecked_submissions %}
-            <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-2xl shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-amber-100/50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800/30 text-amber-900 dark:text-amber-200">
-                            <tr>
-                                <th class="px-6 py-4 font-semibold">Студент</th>
-                                <th class="px-6 py-4 font-semibold">Урок / Задача</th>
-                                <th class="px-6 py-4 font-semibold">Дата отправки</th>
-                                <th class="px-6 py-4 font-semibold text-right">Действие</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-amber-200/50 dark:divide-amber-800/30 text-amber-900 dark:text-amber-100">
-                            {% for sub in unchecked_submissions %}
-                            <tr class="hover:bg-amber-100/30 dark:hover:bg-amber-800/20 transition-colors">
-                                <td class="px-6 py-4 font-bold">{{ sub.student.username }}</td>
-                                <td class="px-6 py-4">{{ sub.lesson.title }}</td>
-                                <td class="px-6 py-4 opacity-75">{{ sub.submitted_at|date:"d.m.Y H:i" }}</td>
-                                <td class="px-6 py-4 text-right">
-                                    <a href="{% url 'check_submission' sub.id %}" class="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
-                                        🔍 Проверить
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        {% else %}
-            <div class="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-500">Все присланные файлы проверены.</div>
-        {% endif %}
-    </section>
-
-    <section>
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-            <span class="text-brand-500">📊</span> Журнал тестов
-        </h2>
-        {% if test_results %}
-            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
-                            <tr>
-                                <th class="px-6 py-4 font-semibold">Ученик</th>
-                                <th class="px-6 py-4 font-semibold">Тест</th>
-                                <th class="px-6 py-4 font-semibold">Попытки</th>
-                                <th class="px-6 py-4 font-semibold">Результат</th>
-                                <th class="px-6 py-4 font-semibold">Дата</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
-                            {% for res in test_results %}
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td class="px-6 py-4 font-bold">{{ res.student.username }}</td>
-                                <td class="px-6 py-4">{{ res.lesson.title }}</td>
-                                <td class="px-6 py-4">{{ res.attempts_count }}</td>
-                                <td class="px-6 py-4 font-bold">
-                                    {% if res.score == res.total_questions %}
-                                        <span class="text-emerald-600 dark:text-emerald-400">{{ res.score }} из {{ res.total_questions }}</span>
-                                    {% else %}
-                                        <span class="text-amber-500 dark:text-amber-400">{{ res.score }} из {{ res.total_questions }}</span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 text-xs opacity-75">{{ res.updated_at|date:"d.m.Y H:i" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        {% else %}
-            <div class="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-500">Ни один ученик еще не проходил тесты.</div>
-        {% endif %}
-    </section>
-
-    <section>
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-            <span class="text-brand-500">👥</span> Управление пользователями
-        </h2>
-        {% if profiles %}
-            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
-                            <tr>
-                                <th class="px-6 py-4 font-semibold">Пользователь</th>
-                                <th class="px-6 py-4 font-semibold">Текущая роль</th>
-                                <th class="px-6 py-4 font-semibold text-right">Сменить роль</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
-                            {% for profile in profiles %}
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td class="px-6 py-4 font-bold">{{ profile.user.username }}</td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold
-                                        {% if profile.role == 'student' %}bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300
-                                        {% elif profile.role == 'teacher' %}bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400
-                                        {% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400{% endif %}">
-                                        {{ profile.get_role_display }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-right django-form-wrapper">
-                                    <form method="post" class="flex justify-end">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="profile_id" value="{{ profile.id }}">
-                                        <input type="hidden" name="change_role" value="1">
-                                        <select name="new_role" onchange="this.form.submit()" class="text-sm py-1.5 px-3 w-40">
-                                            <option value="student" {% if profile.role == 'student' %}selected{% endif %}>Студент</option>
-                                            <option value="teacher" {% if profile.role == 'teacher' %}selected{% endif %}>Учитель</option>
-                                        </select>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        {% endif %}
-    </section>
-
-</div>
 {% endblock %}
