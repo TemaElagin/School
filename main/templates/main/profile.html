@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Статус задач — MySchool{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Статус отправленных задач</h1>
+        <p class="text-sm text-slate-500 mt-1">Здесь собраны все ваши решения, отправленные на проверку преподавателю.</p>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
+        {% if submissions %}
+            <div class="divide-y divide-slate-200 dark:divide-slate-700">
+                {% for sub in submissions %}
+                    <div class="p-6 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="space-y-1">
+                                <a href="{% url 'lesson_detail' sub.lesson.id %}" class="text-lg font-bold text-brand-600 dark:text-brand-400 hover:underline inline-flex items-center gap-1.5">
+                                    <span>{{ sub.lesson.title }}</span>
+                                    <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                </a>
+                                <div class="text-xs text-slate-400 dark:text-slate-500">
+                                    Отправлено: {{ sub.submitted_at|date:"d.m.Y H:i" }}
+                                </div>
+                            </div>
+
+                            # Правая часть: Бэдж статуса и оценки
+                            <div class="shrink-0">
+                                {% if sub.is_checked %}
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                            Проверено
+                                        </span>
+                                        <span class="text-lg font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-600">
+                                            {{ sub.grade }}
+                                        </span>
+                                    </div>
+                                {% else %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 animate-pulse">
+                                        На проверке
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if sub.is_checked and sub.teacher_comment or sub.teacher_file %}
+                            <div class="mt-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/60 text-sm space-y-2">
+                                <div class="font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Рецензия преподавателя:</div>
+                                {% if sub.teacher_comment %}
+                                    <p class="text-slate-700 dark:text-slate-300 italic">"{{ sub.teacher_comment }}"</p>
+                                {% endif %}
+                                {% if sub.teacher_file %}
+                                    <div class="pt-1">
+                                        <a href="{{ sub.teacher_file.url }}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline">
+                                            📎 Скачать проверенный файл с разбором ошибок
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-12 text-center text-slate-500 dark:text-slate-400">
+                <div class="text-4xl mb-3">📥</div>
+                <p class="font-medium">Вы еще не отправляли задачи на проверку.</p>
+                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Все отправленные файлы решений отобразятся в этом списке.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -11,45 +11,61 @@
 
     <script>
         tailwind.config = {
-            darkMode: 'class', /* Включаем ручное управление темной темой */
+            darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            900: '#1e3a8a',
-                        }
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' }
                     }
                 }
             }
         }
+
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
     </script>
 
     <style>
-        body {
-            -webkit-font-smoothing: antialiased;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+        body { -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; min-height: 100vh; }
+        main { flex-grow: 1; }
+
+        /* Фикс стандартных Django-форм под темную тему */
+        .django-form-wrapper p { margin-bottom: 1rem; }
+        .django-form-wrapper label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #475569; }
+        html.dark .django-form-wrapper label { color: #cbd5e1; }
+
+        .django-form-wrapper input[type="text"],
+        .django-form-wrapper input[type="url"],
+        .django-form-wrapper input[type="file"],
+        .django-form-wrapper textarea,
+        .django-form-wrapper select {
+            width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #f8fafc; color: #0f172a; transition: all 0.2s;
         }
-        main {
-            flex-grow: 1;
+
+        html.dark .django-form-wrapper input[type="text"],
+        html.dark .django-form-wrapper input[type="url"],
+        html.dark .django-form-wrapper input[type="file"],
+        html.dark .django-form-wrapper textarea,
+        html.dark .django-form-wrapper select {
+            border-color: #475569; background-color: #1e293b !important; color: #f1f5f9 !important;
+        }
+
+        .django-form-wrapper input:focus, .django-form-wrapper textarea:focus, .django-form-wrapper select:focus {
+            outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
     </style>
 </head>
 <body class="font-sans antialiased bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300">
 
-    <nav class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 transition-all duration-300">
+    <nav class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="/" class="text-xl font-bold text-brand-600 hover:text-brand-900 dark:hover:text-brand-400 transition-colors duration-200">
+                    <a href="/" class="text-xl font-bold text-brand-600 hover:text-brand-900 dark:hover:text-brand-400 transition-colors">
                         MySchool
                     </a>
                 </div>
@@ -61,26 +77,27 @@
 
                     {% if user.is_authenticated %}
                         <span class="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:inline-block">
-                            Привет, {{ user.username }}
+                            {{ user.username }}
                             <span class="text-xs text-slate-400 dark:text-slate-500">({{ user.profile.get_role_display }})</span>
                         </span>
 
                         {% if user.profile.role == 'super_teacher' %}
-                            <a href="{% url 'super_teacher_dashboard' %}" class="text-sm font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors duration-200">
-                                Панель СуперУчителя
-                            </a>
+                            <a href="{% url 'super_teacher_dashboard' %}" class="text-sm font-bold text-emerald-600 dark:text-emerald-400">Панель СУ</a>
                         {% elif user.profile.role == 'teacher' %}
-                            <a href="{% url 'teacher_dashboard' %}" class="text-sm font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 transition-colors duration-200">
-                                Кабинет Учителя
-                            </a>
+                            <a href="{% url 'teacher_dashboard' %}" class="text-sm font-bold text-brand-600 dark:text-brand-400">Панель Учителя</a>
                         {% endif %}
 
-                        <a href="{% url 'logout' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 dark:text-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all duration-200">
-                            Выйти
-                        </a>
+                        <a href="{% url 'profile_dashboard' %}" class="text-sm font-medium text-slate-500 hover:text-brand-600">Статус задач</a>
+
+                        <form method="post" action="{% url 'logout' %}" class="inline-block">
+                            {% csrf_token %}
+                            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors">
+                                Выйти
+                            </button>
+                        </form>
                     {% else %}
-                        <a href="{% url 'login' %}" class="text-sm font-medium text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 transition-colors duration-200">Войти</a>
-                        <a href="{% url 'register' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-600 hover:bg-brand-500 shadow-sm transition-all duration-200">
+                        <a href="{% url 'login' %}" class="text-sm font-medium text-slate-500 hover:text-brand-600 dark:text-slate-400">Войти</a>
+                        <a href="{% url 'register' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-600 hover:bg-brand-500 shadow-sm">
                             Регистрация
                         </a>
                     {% endif %}
@@ -89,12 +106,12 @@
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full animate-fade-in-up">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {% block content %}
         {% endblock %}
     </main>
 
-    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-auto transition-colors duration-300">
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-auto">
         <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-400 dark:text-slate-500">
             &copy; {% now "Y" %} MySchool. Все права защищены.
         </div>
@@ -105,16 +122,12 @@
         const themeIcon = document.getElementById('theme-icon');
         const htmlElement = document.documentElement;
 
-        // При загрузке проверяем, что сохранено в localStorage
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            htmlElement.classList.add('dark');
+        if (htmlElement.classList.contains('dark')) {
             themeIcon.textContent = '☀️';
         } else {
-            htmlElement.classList.remove('dark');
             themeIcon.textContent = '🌙';
         }
 
-        // Слушатель на кнопку
         themeToggleBtn.addEventListener('click', function() {
             htmlElement.classList.toggle('dark');
             if (htmlElement.classList.contains('dark')) {

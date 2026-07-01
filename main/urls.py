@@ -3,9 +3,9 @@ from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
-    # Основные страницы
     path('', views.index, name='index'),
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
+    path('profile/', views.profile_dashboard, name='profile_dashboard'),
 
     # Уроки и задачи
     path('lesson/<int:lesson_id>/', views.lesson_detail, name='lesson_detail'),
@@ -20,8 +20,8 @@ urlpatterns = [
     # Авторизация
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='index'), name='logout'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
-    # API эндпоинты (для JS функций)
+    # API
     path('api/update-lesson-order/', views.update_lesson_order, name='update_lesson_order'),
 ]
