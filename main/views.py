@@ -1,26 +1,21 @@
-from django.shortcuts import render, redirect
+import json
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Q
-from .models import Lesson, Course, Profile
-from .forms import RegistrationForm, TeacherLessonCreateForm, SuperLessonCreateForm, CourseCreateForm, \
-    EditAllowedStudentsForm
+from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
+from .models import Lesson, Course, Profile, Question, TestResult, TaskSubmission
+from .forms import (
+    RegistrationForm, TeacherLessonCreateForm, SuperLessonCreateForm,
+    CourseCreateForm, LessonQuestionFormSet, LessonEditForm,
+    StudentSubmissionForm, TeacherCheckForm
+)
 from .decorators import teacher_only, super_teacher_only
-from django.shortcuts import get_object_or_404
-from django.shortcuts import get_object_or_404
-from .models import Lesson, Question
-from .forms import LessonQuestionFormSet
-from .models import Lesson, TestResult
-from django.db.models import F
-from django.shortcuts import render, get_object_or_404, redirect
-from django.utils import timezone
-from .models import Course, Lesson, TestResult, TaskSubmission
-from .forms import LessonEditForm, StudentSubmissionForm, TeacherCheckForm
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.models import User
-from django.utils import timezone
-from .models import Lesson, Course, Profile, TestResult, TaskSubmission
-from .forms import SuperLessonCreateForm, CourseCreateForm
 
 
 def index(request):
@@ -72,7 +67,6 @@ def login_view(request):
     return render(request, 'main/login.html', {'form': form})
 
 
-# 2. ИНТЕРФЕЙС ОБЫЧНОГО УЧИТЕЛЯ
 @teacher_only
 def teacher_dashboard(request):
     if request.method == 'POST':
@@ -97,97 +91,67 @@ def teacher_dashboard(request):
 
 @super_teacher_only
 def super_teacher_dashboard(request):
-    # Жесткая проверка прав доступа
     if not request.user.is_authenticated or request.user.profile.role != 'super_teacher':
         return redirect('index')
 
-    # Инициализируем формы для отображения на странице
     lesson_form = SuperLessonCreateForm()
     course_form = CourseCreateForm()
 
     if request.method == 'POST':
-        # 1. Создание нового урока
         if 'create_lesson' in request.POST:
             lesson_form = SuperLessonCreateForm(request.POST)
             if lesson_form.is_valid():
                 lesson = lesson_form.save(commit=False)
                 lesson.author = request.user
                 lesson.save()
-                lesson_form.save_m2m()  # Для сохранения ManyToMany поля allowed_students
+                lesson_form.save_m2m()
                 return redirect('super_teacher_dashboard')
 
-        # 2. Создание нового курса
         elif 'create_course' in request.POST:
             course_form = CourseCreateForm(request.POST)
             if course_form.is_valid():
                 course_form.save()
                 return redirect('super_teacher_dashboard')
 
-        # 3. Изменение привязки урока к курсу из таблицы
         elif 'change_course' in request.POST:
-            lesson_id = request.POST.get('lesson_id')
+            lesson = get_object_or_404(Lesson, id=request.POST.get('lesson_id'))
             course_id = request.POST.get('course_id')
-            lesson = get_object_or_404(Lesson, id=lesson_id)
-            if course_id:
-                lesson.course = get_object_or_404(Course, id=course_id)
-            else:
-                lesson.course = None
+            lesson.course = get_object_or_404(Course, id=course_id) if course_id else None
             lesson.save()
             return redirect('super_teacher_dashboard')
 
-        # 4. Изменение статуса урока из таблицы
         elif 'change_status' in request.POST:
-            lesson_id = request.POST.get('lesson_id')
-            new_status = request.POST.get('new_status')
-            lesson = get_object_or_404(Lesson, id=lesson_id)
-            lesson.status = new_status
+            lesson = get_object_or_404(Lesson, id=request.POST.get('lesson_id'))
+            lesson.status = request.POST.get('new_status')
             lesson.save()
             return redirect('super_teacher_dashboard')
 
-        # 5. Изменение списка доступных студентов (allowed_students) для приватного урока
         elif 'change_allowed_students' in request.POST:
-            lesson_id = request.POST.get('lesson_id')
-            lesson = get_object_or_404(Lesson, id=lesson_id)
+            lesson = get_object_or_404(Lesson, id=request.POST.get('lesson_id'))
             selected_student_ids = request.POST.getlist('allowed_students')
             lesson.allowed_students.set(User.objects.filter(id__in=selected_student_ids))
             return redirect('super_teacher_dashboard')
 
-        # 6. Изменение роли пользователя (Студент / Учитель)
         elif 'change_role' in request.POST:
-            profile_id = request.POST.get('profile_id')
-            new_role = request.POST.get('new_role')
-            profile = get_object_or_404(Profile, id=profile_id)
-            profile.role = new_role
+            profile = get_object_or_404(Profile, id=request.POST.get('profile_id'))
+            profile.role = request.POST.get('new_role')
             profile.save()
             return redirect('super_teacher_dashboard')
 
-        # 7. Удаление урока
         elif 'delete_lesson' in request.POST:
-            lesson_id = request.POST.get('lesson_id')
-            lesson = get_object_or_404(Lesson, id=lesson_id)
-            lesson.delete()
+            get_object_or_404(Lesson, id=request.POST.get('lesson_id')).delete()
             return redirect('super_teacher_dashboard')
 
-        # 8. Удаление курса
         elif 'delete_course' in request.POST:
-            course_id = request.POST.get('course_id')
-            course = get_object_or_404(Course, id=course_id)
-            course.delete()
+            get_object_or_404(Course, id=request.POST.get('course_id')).delete()
             return redirect('super_teacher_dashboard')
 
-    # ---- ВЫБОРКА ДАННЫХ ДЛЯ ОТОБРАЖЕНИЯ НА СТРАНИЦЕ ----
-
-    # Все уроки и все курсы в системе
+    # Выборка данных для дашборда
     all_lessons = Lesson.objects.all().select_related('course', 'author')
     all_courses = Course.objects.all().prefetch_related('course_lessons')
-
-    # Все пользователи, кроме самого себя (СуперУчителя)
     all_profiles = Profile.objects.exclude(user=request.user).select_related('user')
-
-    # Сводная история прохождения тестов (из уникальной таблицы результатов)
     all_test_results = TestResult.objects.all().select_related('student', 'lesson').order_by('-updated_at')
 
-    # Загруженные студентами файлы задач (разделяем на проверенные и непроверенные)
     unchecked_submissions = TaskSubmission.objects.filter(is_checked=False).select_related('student',
                                                                                            'lesson').order_by(
         '-submitted_at')
@@ -210,7 +174,7 @@ def lesson_detail(request, lesson_id):
     lesson = get_object_or_404(Lesson, id=lesson_id)
     questions = lesson.questions.all()
 
-    # Логика для Тестов (автопроверка со счетчиком попыток)
+    # Логика тестов
     submitted = False
     score = 0
     total_questions = questions.count()
@@ -240,14 +204,13 @@ def lesson_detail(request, lesson_id):
                     student=request.user, lesson=lesson, score=score, total_questions=total_questions, attempts_count=1
                 )
 
-    # ЛОГИКА ДЛЯ ЗАДАЧНИКА (TASK) — ЗАГРУЗКА ФАЙЛОВ СТУДЕНТОМ
+    # Логика задачников
     submission = None
     submission_form = None
     if request.user.is_authenticated and lesson.type == 'task':
         submission = TaskSubmission.objects.filter(student=request.user, lesson=lesson).first()
 
         if request.method == 'POST':
-            from .forms import StudentSubmissionForm
             submission_form = StudentSubmissionForm(request.POST, request.FILES, instance=submission)
             if submission_form.is_valid():
                 sub = submission_form.save(commit=False)
@@ -257,42 +220,30 @@ def lesson_detail(request, lesson_id):
                 sub.save()
                 return redirect('lesson_detail', lesson_id=lesson.id)
         else:
-            from .forms import StudentSubmissionForm
             submission_form = StudentSubmissionForm(instance=submission)
 
-    # --- УМНЫЙ ПАРСИНГ ВИДЕО ССЫЛОК ДЛЯ ВСТРОЕННОГО ПЛЕЕРА ---
+    # Умный парсинг видео ссылок
     embed_video_url = None
     is_direct_file = False
 
     if lesson.video_url:
         url = lesson.video_url.strip()
-
-        # 1. YouTube стандартный или Live-трансляции
         if 'youtube.com/watch?v=' in url:
-            video_id = url.split('v=')[1].split('&')[0]
-            embed_video_url = f"https://www.youtube.com/embed/{video_id}"
+            embed_video_url = f"https://www.youtube.com/embed/{url.split('v=')[1].split('&')[0]}"
         elif 'youtu.be/' in url:
-            video_id = url.split('youtu.be/')[1].split('?')[0]
-            embed_video_url = f"https://www.youtube.com/embed/{video_id}"
+            embed_video_url = f"https://www.youtube.com/embed/{url.split('youtu.be/')[1].split('?')[0]}"
         elif 'youtube.com/live/' in url:
-            video_id = url.split('youtube.com/live/')[1].split('?')[0]
-            embed_video_url = f"https://www.youtube.com/embed/{video_id}"
-
-        # 2. VK Видео (работает, если вставить iframe ссылку или прямую ссылку на видео-расширение)
+            embed_video_url = f"https://www.youtube.com/embed/{url.split('youtube.com/live/')[1].split('?')[0]}"
         elif 'vk.com/video_ext.php' in url:
             embed_video_url = url
         elif 'vk.com/video' in url or 'vkvideo.ru/video' in url:
-            # Извлекаем кусок после '/video' (например, -110693088_456241149)
             try:
                 video_part = url.split('/video')[1].split('?')[0]
-                # Формируем валидный embed-URL для VK
                 if '_' in video_part:
                     oid, vid = video_part.split('_')
                     embed_video_url = f"https://vk.com/video_ext.php?oid={oid}&id={vid}&hash=0"
             except (IndexError, ValueError):
                 pass
-
-        # 3. Прямой видео-файл (локальный или с хостинга)
         elif url.endswith(('.mp4', '.webm', '.ogg')):
             is_direct_file = True
 
@@ -332,9 +283,9 @@ def manage_test(request, lesson_id):
         'formset': formset
     })
 
+
 def course_detail(request, course_id):
     course = get_object_or_404(Course, id=course_id)
-
     lessons = course.course_lessons.all()
     return render(request, 'main/course_detail.html', {
         'course': course,
@@ -345,7 +296,6 @@ def course_detail(request, course_id):
 def edit_lesson(request, lesson_id):
     lesson = get_object_or_404(Lesson, id=lesson_id)
 
-    # Проверка прав (Суперучитель или автор-учитель)
     if request.user.profile.role not in ['teacher', 'super_teacher']:
         return redirect('index')
     if request.user.profile.role == 'teacher' and lesson.author != request.user:
@@ -384,3 +334,22 @@ def check_submission(request, submission_id):
         'form': form,
         'submission': submission
     })
+
+
+# --- API Эндпоинты ---
+@login_required
+@require_POST
+def update_lesson_order(request):
+    if request.user.profile.role not in ['super_teacher', 'teacher']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        new_order = data.get('new_order', [])
+
+        for index, lesson_id in enumerate(new_order):
+            Lesson.objects.filter(id=lesson_id).update(order=index)
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

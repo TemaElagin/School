@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-import os
 
 
 class Profile(models.Model):
@@ -10,6 +9,17 @@ class Profile(models.Model):
         ('teacher', 'Учитель'),
         ('super_teacher', 'СуперУчитель')
     ], default='student')
+
+    def __str__(self):
+        return f"{self.user.username} ({self.get_role_display()})"
+
+
+class Course(models.Model):
+    title = models.CharField(max_length=200, verbose_name="Название курса")
+    description = models.TextField(blank=True, null=True, verbose_name="Описание курса")
+
+    def __str__(self):
+        return self.title
 
 
 class Lesson(models.Model):
@@ -29,6 +39,7 @@ class Lesson(models.Model):
     title = models.CharField(max_length=200, verbose_name="Название урока")
     type = models.CharField(max_length=10, choices=TYPES, verbose_name="Тип урока")
     status = models.CharField(max_length=10, choices=STATUSES, default='lock', verbose_name="Статус")
+    order = models.IntegerField(default=0, verbose_name="Порядок в курсе")
 
     content_text = models.TextField(blank=True, null=True, verbose_name="Текст лекции / Задания")
     video_url = models.URLField(blank=True, null=True, verbose_name="Ссылка на видео")
@@ -36,25 +47,29 @@ class Lesson(models.Model):
                                       verbose_name="Правильный ответ (для задач/тестов)")
 
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='authored_lessons')
-    course = models.ForeignKey('Course', on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name='course_lessons')
+    course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True, related_name='course_lessons')
     allowed_students = models.ManyToManyField(User, blank=True, related_name='allowed_lessons')
+
+    class Meta:
+        ordering = ['order', 'id']
 
     def __str__(self):
         return self.title
 
     def save(self, *args, **kwargs):
-        if self.course is not None:
+        if self.course is not None and self.status == 'lock':
             self.status = 'public'
         super().save(*args, **kwargs)
+
 
 class Question(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='questions', verbose_name="Урок-Тест")
     text = models.TextField(verbose_name="Текст вопроса (можно использовать LaTeX)")
-    correct_answer = models.CharField(max_length=200, verbose_name="Правильный ответ") # <-- ПРОВЕРЬ ЭТУ СТРОКУ
+    correct_answer = models.CharField(max_length=200, verbose_name="Правильный ответ")
 
     def __str__(self):
         return f"Вопрос: {self.text[:50]}..."
+
 
 class Choice(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='choices', verbose_name="Вопрос")
@@ -65,40 +80,24 @@ class Choice(models.Model):
         return self.text
 
 
-class Course(models.Model):
-    title = models.CharField(max_length=200)
-
-
-    def __str__(self):
-        return self.title
-
-
-class Submission(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='solutions/', blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-
 class TestResult(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='test_results', verbose_name="Ученик")
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='test_results', verbose_name="Урок-Тест")
     score = models.IntegerField(verbose_name="Набранные баллы")
     total_questions = models.IntegerField(verbose_name="Всего вопросов")
-
-    # Вместо генерации новых строк — просто инкрементируем этот счетчик
     attempts_count = models.IntegerField(default=0, verbose_name="Количество попыток")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата последней попытки")
 
     class Meta:
-        # Строго одна строка на связку Студент + Тест
         unique_together = ('student', 'lesson')
 
     def __str__(self):
         return f"{self.student.username} -> {self.lesson.title} (Попыток: {self.attempts_count}): {self.score}/{self.total_questions}"
 
+
 def student_submission_path(instance, filename):
     return f'submissions/student_{instance.student.id}/lesson_{instance.lesson.id}/{filename}'
+
 
 def teacher_response_path(instance, filename):
     return f'submissions/student_{instance.student.id}/lesson_{instance.lesson.id}/teacher_{filename}'
@@ -106,9 +105,7 @@ def teacher_response_path(instance, filename):
 
 class TaskSubmission(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions', verbose_name="Ученик")
-    lesson = models.ForeignKey('Lesson', on_delete=models.CASCADE, related_name='submissions',
-                               verbose_name="Урок-Задача")
-
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='submissions', verbose_name="Урок-Задача")
     file = models.FileField(upload_to=student_submission_path, verbose_name="Файл с решением")
     submitted_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отправки")
 

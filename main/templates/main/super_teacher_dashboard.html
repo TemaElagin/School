@@ -66,36 +66,66 @@
             <span class="text-brand-500">📂</span> Управление курсами
         </h2>
         {% if courses %}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {% for course in courses %}
-                    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm flex flex-col">
-                        <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ course.title }}</h3>
-                            <form method="post" onsubmit="return confirm('Точно удалить этот курс? Уроки внутри курса не удалятся.');">
+                    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white">{{ course.title }}</h3>
+                                <p class="text-xs text-slate-500 mt-1">Перетащите уроки, чтобы изменить порядок</p>
+                            </div>
+                            <form method="post" onsubmit="return confirm('Точно удалить курс?');">
                                 {% csrf_token %}
                                 <input type="hidden" name="course_id" value="{{ course.id }}">
-                                <button type="submit" name="delete_course" class="text-rose-500 hover:text-rose-700 p-1 transition-colors" title="Удалить курс">
+                                <button type="submit" name="delete_course" class="text-rose-500 hover:text-rose-700 p-2 bg-rose-50 dark:bg-rose-900/20 rounded-lg transition-colors">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                 </button>
                             </form>
                         </div>
+
                         <div class="flex-grow">
-                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Уроки в курсе:</p>
-                            <ul class="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                            <ul class="sortable-lesson-list space-y-2" data-course-id="{{ course.id }}">
                                 {% for lesson in course.course_lessons.all %}
-                                    <li class="truncate">• {{ lesson.title }}</li>
-                                {% empty %}
-                                    <li class="italic opacity-50">Пока нет уроков</li>
+                                    <li class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl" data-lesson-id="{{ lesson.id }}">
+                                        <div class="drag-handle cursor-grab active:cursor-grabbing text-slate-400 hover:text-brand-500 p-1">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                        </div>
+                                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 truncate flex-grow">{{ lesson.title }}</span>
+                                        <span class="text-[10px] uppercase font-bold px-2 py-1 rounded bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-600">
+                                            {{ lesson.get_type_display }}
+                                        </span>
+                                    </li>
                                 {% endfor %}
                             </ul>
                         </div>
                     </div>
                 {% endfor %}
             </div>
-        {% else %}
-            <div class="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-500">Курсов пока нет.</div>
         {% endif %}
     </section>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    document.querySelectorAll('.sortable-lesson-list').forEach(list => {
+        new Sortable(list, {
+            animation: 150,
+            handle: '.drag-handle',
+            onEnd: function (evt) {
+                const courseId = evt.from.dataset.courseId;
+                const newOrder = Array.from(evt.from.children).map(li => li.dataset.lessonId);
+
+                fetch("{% url 'update_lesson_order' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ new_order: newOrder })
+                });
+            }
+        });
+    });
+</script>
 
     <section>
         <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
