@@ -1,18 +1,16 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Редактирование: {{ lesson.title }}</title>
-</head>
-<body>
-    <p><a href="{% url 'lesson_detail' lesson.id %}">← Отмена</a></p>
-    <hr>
-    <h1>Редактирование урока: "{{ lesson.title }}"</h1>
+{% extends "base.html" %}
+{% block title %}Редактирование: {{ lesson.title }}{% endblock %}
 
-    <form method="post" style="max-width: 600px;">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer;">Сохранить изменения</button>
-    </form>
-</body>
-</html>
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <a href="{% url 'lesson_detail' lesson.id %}" class="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">← Отмена</a>
+    <h1 class="text-2xl font-bold mt-4 mb-6">Редактирование урока: "{{ lesson.title }}"</h1>
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 django-form-wrapper">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="w-full mt-4 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700">Сохранить изменения</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

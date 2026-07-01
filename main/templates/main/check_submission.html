@@ -1,23 +1,21 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Проверка работы: {{ submission.student.username }}</title>
-</head>
-<body>
-    <h1>Проверка решения задачи</h1>
-    <p><strong>Ученик:</strong> {{ submission.student.username }}</p>
-    <p><strong>Урок:</strong> {{ submission.lesson.title }}</p>
-    <p><strong>Файл ученика:</strong> <a href="{{ submission.file.url }}" target="_blank" style="font-size: 16px; font-weight: bold; color: #007bff;">Открыть/Скачать решение студента</a></p>
-    <hr>
+{% extends "base.html" %}
+{% block title %}Проверка: {{ submission.student.username }}{% endblock %}
 
-    <h3>Выставить оценку и прикрепить разбор:</h3>
-    <form method="post" enctype="multipart/form-data" style="max-width: 600px;">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" style="padding: 12px 25px; background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold;">
-            Сохранить проверку и отправить ученику
-        </button>
-    </form>
-</body>
-</html>
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <h1 class="text-2xl font-bold">Проверка решения</h1>
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <p><strong>Ученик:</strong> {{ submission.student.username }}</p>
+        <p><strong>Урок:</strong> {{ submission.lesson.title }}</p>
+        <a href="{{ submission.file.url }}" target="_blank" class="inline-block mt-4 text-brand-600 font-bold underline">Открыть решение студента</a>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 django-form-wrapper">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="w-full mt-4 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700">Сохранить проверку</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

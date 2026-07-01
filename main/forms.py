@@ -94,7 +94,7 @@ LessonQuestionFormSet = inlineformset_factory(
     Lesson,
     Question,
     form=QuestionForm,
-    extra=10,
+    extra=25,
     can_delete=True
 )
 

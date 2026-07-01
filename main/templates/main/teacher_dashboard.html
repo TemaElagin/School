@@ -1,40 +1,35 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Панель Учителя</title>
-</head>
-<body>
-    <h1>Кабинет Учителя: {{ user.username }}</h1>
-    <p><a href="{% url 'index' %}">На главную страницу</a></p>
-    <hr>
+{% extends "base.html" %}
 
-    <h2>Создать новый урок</h2>
-    <p><em>* Урок автоматически получит статус "Закрытый" (lock)</em></p>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Создать урок</button>
-    </form>
+{% block title %}Кабинет Учителя — MySchool{% endblock %}
 
-    <hr>
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8">
+    <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Мои материалы</h1>
 
-    <h2>Доступные уроки в системе (все, кроме скрытых от всех)</h2>
-    {% if lessons %}
-        <ul>
+    <!-- Форма создания -->
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Создать новый урок</h2>
+        <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="md:col-span-2 px-6 py-2.5 bg-brand-600 text-white font-semibold rounded-lg hover:bg-brand-700 transition-colors">
+                Создать
+            </button>
+        </form>
+    </div>
+
+    <!-- Список уроков -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% for lesson in lessons %}
-            <li style="margin-bottom: 10px;">
-                <strong>{{ lesson.title }}</strong> — Тип: {{ lesson.get_type_display }}
-                (Статус: {{ lesson.get_status_display }} | Автор: {{ lesson.author.username|default:"Система" }})
-
-                {% if lesson.type == 'test' %}
-                    | <a href="{% url 'manage_test' lesson.id %}" style="color: #007bff; font-weight: bold;">Наполнить тест вопросами</a>
-                {% endif %}
-            </li>
+            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ lesson.title }}</h3>
+                <p class="text-sm text-slate-500 mb-4">{{ lesson.get_type_display }}</p>
+                <div class="flex gap-3">
+                    <a href="{% url 'lesson_detail' lesson.id %}" class="text-sm text-brand-600 dark:text-brand-400 font-bold hover:underline">Просмотр</a>
+                    <a href="{% url 'edit_lesson' lesson.id %}" class="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Редактировать</a>
+                </div>
+            </div>
         {% endfor %}
-        </ul>
-    {% else %}
-        <p>В системе пока нет уроков.</p>
-    {% endif %}
-</body>
-</html>
+    </div>
+</div>
+{% endblock %}
