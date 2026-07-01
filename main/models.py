@@ -105,3 +105,11 @@ class TaskSubmission(models.Model):
 
     submitted_at = models.DateTimeField(auto_now_add=True)
     checked_at = models.DateTimeField(blank=True, null=True)
+
+
+class SubmissionFile(models.Model):
+    submission = models.ForeignKey(TaskSubmission, on_delete=models.CASCADE, related_name='submission_files')
+    file = models.FileField(upload_to='submissions/')
+
+    def __str__(self):
+        return f"Файл для решения {self.submission.id}"

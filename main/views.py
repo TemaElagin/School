@@ -10,11 +10,10 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required, user_passes_test
 
-from .models import Lesson, Course, Profile, TestResult, TaskSubmission, Question
+from .models import Lesson, Course, Profile, TestResult, TaskSubmission, Question, SubmissionFile
 from .forms import RegistrationForm, LessonCreateOrEditForm, CourseCreateForm, StudentSubmissionForm, TeacherCheckForm
 
 
-# --- Декораторы прав доступа ---
 def is_teacher(user):
     return user.is_authenticated and user.profile.role in ['teacher', 'super_teacher']
 
@@ -23,7 +22,6 @@ def is_super_teacher(user):
     return user.is_authenticated and user.profile.role == 'super_teacher'
 
 
-# --- Умный парсер видео (YouTube / VK) ---
 def parse_video_url(url):
     if not url:
         return None, False
@@ -52,8 +50,6 @@ def parse_video_url(url):
     return None, False
 
 
-# --- ВЬЮХИ ---
-
 def index(request):
     if request.user.is_authenticated:
         if request.user.profile.role == 'student':
@@ -74,8 +70,23 @@ def index(request):
 
 @login_required
 def profile_dashboard(request):
+    profile = request.user.profile
+    message = None
+
+    if request.method == 'POST' and profile.role == 'student' and not profile.my_teacher:
+        code = request.POST.get('teacher_code', '').strip()
+        if code:
+            try:
+                teacher_profile = Profile.objects.get(teacher_code=code, role__in=['teacher', 'super_teacher'])
+                profile.my_teacher = teacher_profile.user
+                profile.save()
+                return redirect('profile_dashboard')
+            except Profile.DoesNotExist:
+                message = "Учитель с таким кодом не найден."
+
     return render(request, 'main/profile.html', {
-        'submissions': request.user.submissions.all().select_related('lesson')
+        'submissions': request.user.submissions.all().select_related('lesson'),
+        'message': message
     })
 
 
@@ -111,15 +122,14 @@ def teacher_dashboard(request):
     role = request.user.profile.role
 
     if request.method == 'POST':
-        # Передаем request.user в форму
         form = LessonCreateOrEditForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             lesson = form.save(commit=False)
             lesson.author = request.user
-            if role == 'teacher':
-                lesson.status = 'lock'
+            if role == 'teacher' and lesson.status == 'public':
+                lesson.status = 'private'  # Страховка от подмены POST-данных
             lesson.save()
-            form.save_m2m() # Важно: сохраняет связи ManyToMany (выбранных учеников)
+            form.save_m2m()
 
             if lesson.type == 'test':
                 questions_text = request.POST.getlist('q_text[]')
@@ -130,7 +140,6 @@ def teacher_dashboard(request):
 
             return redirect('super_teacher_dashboard' if role == 'super_teacher' else 'teacher_dashboard')
     else:
-        # Передаем request.user в форму
         form = LessonCreateOrEditForm(user=request.user)
 
     my_lessons = Lesson.objects.filter(author=request.user).select_related('course')
@@ -206,22 +215,37 @@ def super_teacher_dashboard(request):
 def students_progress(request):
     is_super = request.user.profile.role == 'super_teacher'
 
+    selected_teacher_id = request.GET.get('teacher_filter', '')
+    teachers = None
+
     if is_super:
-        students = User.objects.filter(profile__role='student').select_related('profile')
+        teachers = User.objects.filter(profile__role__in=['teacher', 'super_teacher'])
+        if selected_teacher_id:
+            students = User.objects.filter(profile__my_teacher_id=selected_teacher_id,
+                                           profile__role='student').select_related('profile')
+        else:
+            students = User.objects.filter(profile__role='student').select_related('profile')
     else:
-        students = User.objects.filter(profile__my_teacher=request.user).select_related('profile')
+        students = User.objects.filter(profile__my_teacher=request.user, profile__role='student').select_related(
+            'profile')
 
     progress_data = []
     for student in students:
         results = TestResult.objects.filter(student=student).select_related('lesson')
-        tasks = TaskSubmission.objects.filter(student=student).select_related('lesson')
+        tasks = TaskSubmission.objects.filter(student=student).prefetch_related('submission_files').select_related(
+            'lesson')
         progress_data.append({
             'student': student,
             'test_results': results,
             'task_submissions': tasks
         })
 
-    return render(request, 'main/students_progress.html', {'progress_data': progress_data})
+    return render(request, 'main/students_progress.html', {
+        'progress_data': progress_data,
+        'teachers': teachers,
+        'selected_teacher_id': selected_teacher_id,
+        'is_super': is_super
+    })
 
 
 @login_required
@@ -238,12 +262,8 @@ def lesson_detail(request, lesson_id):
 
     questions = list(lesson.questions.all())
     embed_video_url, is_direct_file = parse_video_url(lesson.video_url)
-    context = {
-        'lesson': lesson,
-        'questions': questions,
-        'embed_video_url': embed_video_url,
-        'is_direct_file': is_direct_file
-    }
+
+    submission = TaskSubmission.objects.filter(student=request.user, lesson=lesson).first()
 
     if request.method == 'POST' and lesson.type == 'test':
         score = 0
@@ -261,20 +281,42 @@ def lesson_detail(request, lesson_id):
         else:
             TestResult.objects.create(student=request.user, lesson=lesson, score=score, total_questions=len(questions),
                                       attempts_count=1)
-        context.update({'test_submitted': True, 'score': score, 'total_questions': len(questions)})
+        return render(request, 'main/lesson_detail.html', {
+            'lesson': lesson, 'questions': questions, 'embed_video_url': embed_video_url,
+            'is_direct_file': is_direct_file, 'test_submitted': True, 'score': score, 'total_questions': len(questions)
+        })
 
     if lesson.type == 'task':
-        sub = TaskSubmission.objects.filter(student=request.user, lesson=lesson).first()
         if request.method == 'POST':
-            form = StudentSubmissionForm(request.POST, request.FILES, instance=sub)
+            form = StudentSubmissionForm(request.POST, request.FILES)
             if form.is_valid():
-                s = form.save(commit=False)
-                s.student, s.lesson, s.is_checked = request.user, lesson, False
-                s.save()
-                return redirect('lesson_detail', lesson_id=lesson.id)
-        context.update({'submission': sub, 'submission_form': StudentSubmissionForm(instance=sub)})
+                if not submission:
+                    submission = TaskSubmission.objects.create(student=request.user, lesson=lesson)
 
-    return render(request, 'main/lesson_detail.html', context)
+                submission.comment = form.cleaned_data['comment']
+                submission.is_checked = False
+                submission.grade = None
+                submission.teacher_comment = None
+                submission.save()
+
+                files = request.FILES.getlist('uploaded_files')
+                if files:
+                    submission.submission_files.all().delete()  # Удаляем прошлые попытки
+                    for f in files:
+                        SubmissionFile.objects.create(submission=submission, file=f)
+
+                return redirect('lesson_detail', lesson_id=lesson.id)
+        else:
+            form = StudentSubmissionForm()
+
+    return render(request, 'main/lesson_detail.html', {
+        'lesson': lesson,
+        'questions': questions,
+        'embed_video_url': embed_video_url,
+        'is_direct_file': is_direct_file,
+        'submission': submission,
+        'submission_form': form if lesson.type == 'task' else None
+    })
 
 
 @user_passes_test(is_teacher)
@@ -284,10 +326,13 @@ def edit_lesson(request, lesson_id):
         return HttpResponseForbidden("Вы можете редактировать только свои уроки.")
 
     if request.method == 'POST':
-        # Передаем request.user в форму
         form = LessonCreateOrEditForm(request.POST, request.FILES, instance=lesson, user=request.user)
         if form.is_valid():
-            form.save() # form.save() для существующих объектов сохраняет и m2m-связи
+            saved_lesson = form.save(commit=False)
+            if request.user.profile.role == 'teacher' and saved_lesson.status == 'public':
+                saved_lesson.status = 'private'  # Пункт 2: Жесткий блок смены статуса на публичный
+            saved_lesson.save()
+            form.save_m2m()
 
             if lesson.type == 'test':
                 lesson.questions.all().delete()
@@ -299,7 +344,6 @@ def edit_lesson(request, lesson_id):
 
             return redirect('lesson_detail', lesson_id=lesson.id)
     else:
-        # Передаем request.user в форму
         form = LessonCreateOrEditForm(instance=lesson, user=request.user)
     return render(request, 'main/edit_lesson.html', {'form': form, 'lesson': lesson})
 
