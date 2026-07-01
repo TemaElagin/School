@@ -1,90 +1,170 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Главная — Физико-Математическая LMS</title>
-</head>
-<body>
-    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background-color: #f8f9fa; border-bottom: 1px solid #e3e6f0;">
-        <h1>Онлайн-Школа</h1>
-        <div>
-            {% if user.is_authenticated %}
-                Добро пожаловать, <strong>{{ user.username }}</strong>!
-                <span style="color: gray;">(Роль: {{ user.profile.get_role_display }})</span> |
+{% extends "base.html" %}
 
-                {% if user.profile.role == 'super_teacher' %}
-                    <a href="{% url 'super_teacher_dashboard' %}" style="font-weight: bold; color: #28a745;">Панель СуперУчителя</a> |
-                {% elif user.profile.role == 'teacher' %}
-                    <a href="{% url 'teacher_dashboard' %}" style="font-weight: bold; color: #007bff;">Кабинет Учителя</a> |
-                {% endif %}
+{% block title %}Главная — MySchool{% endblock %}
 
-                <a href="{% url 'logout' %}">Выйти</a>
-            {% else %}
-                <a href="{% url 'login' %}">Войти</a> |
-                <a href="{% url 'register' %}">Регистрация</a>
-            {% endif %}
-        </div>
-    </header>
+{% block content %}
+<style>
+    .spotlight {
+        position: relative;
+    }
+    .spotlight::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        z-index: 0;
+    }
+    html.dark .spotlight::before {
+        background: radial-gradient(
+            600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+            rgba(59, 130, 246, 0.15),
+            transparent 40%
+        );
+    }
+    html.dark .spotlight:hover::before {
+        opacity: 1;
+    }
+    .spotlight-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+</style>
 
-    <main style="padding: 20px; max-width: 1000px; margin: 0 auto;">
+<div class="space-y-10">
 
-        <h2>📚 Доступные курсы</h2>
+    <section>
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2 transition-colors duration-300">
+            <span class="text-brand-500">📚</span> Доступные курсы
+        </h2>
+
         {% if courses %}
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px;">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for course in courses %}
-                    <div style="border: 1px solid #ccc; border-radius: 6px; padding: 15px; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <a href="{% url 'course_detail' course.id %}" style="font-size: 18px; font-weight: bold; color: #007bff; text-decoration: none;">
-                            {{ course.title }}
-                        </a>
-                        <p style="color: #666; font-size: 14px; margin-top: 8px;">
-                            Включает в себя: <strong>{{ course.course_lessons.count }}</strong> занятий
-                        </p>
-                        <a href="{% url 'course_detail' course.id %}" style="display: inline-block; margin-top: 10px; font-size: 14px; color: #17a2b8; text-decoration: none; font-weight: bold;">
-                            Открыть программу курса →
-                        </a>
+                    <div class="spotlight overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group">
+                        <div class="spotlight-content p-6">
+                            <a href="{% url 'course_detail' course.id %}" class="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                                {{ course.title }}
+                            </a>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm mt-3 flex-grow transition-colors duration-300">
+                                Включает занятий: <strong class="text-slate-700 dark:text-slate-300 font-semibold">{{ course.course_lessons.count }}</strong>
+                            </p>
+                            <a href="{% url 'course_detail' course.id %}" class="mt-6 inline-flex items-center text-sm font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 transition-colors">
+                                Открыть программу <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
+                            </a>
+                        </div>
                     </div>
                 {% endfor %}
             </div>
         {% else %}
-            <p style="color: gray;">Курсов пока нет.</p>
+            <div class="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-500 dark:text-slate-400 transition-colors duration-300">
+                Курсов пока нет.
+            </div>
         {% endif %}
+    </section>
 
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+    <hr class="border-t border-slate-200 dark:border-slate-800 transition-colors duration-300">
 
-        <h2>📄 Одиночные уроки (вне курсов)</h2>
-        {% if lessons %}
-            <ul style="list-style-type: none; padding-left: 0;">
-                {% for lesson in lessons %}
-                    <li style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <a href="{% url 'lesson_detail' lesson.id %}" style="font-size: 16px; font-weight: bold; color: #333; text-decoration: none; border-bottom: 1px dashed #007bff;">
-                                {{ lesson.title }}
-                            </a>
-                            <br>
-                            <small style="color: #6c757d;">
-                                Тип: <strong>{{ lesson.get_type_display }}</strong>
-                                {% if user.profile.role == 'super_teacher' %}
-                                    | Статус: <span style="color: #e83e8c;">{{ lesson.get_status_display }}</span>
-                                {% endif %}
-                            </small>
-                        </div>
+    <section>
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2 transition-colors duration-300">
+            <span class="text-brand-500">📄</span> Уроки
+        </h2>
 
-                        <div>
-                            <a href="{% url 'lesson_detail' lesson.id %}" style="background-color: #f1f3f5; color: #495057; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 14px;">
-                                Начать изучение
-                            </a>
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="color: gray;">Свободных уроков в открытом доступе пока нет.</p>
-        {% endif %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-    </main>
+            <div>
+                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                    Открытые
+                </h3>
+                <div class="grid grid-cols-1 gap-6">
+                    {% for lesson in lessons %}
+                        {% if lesson.status == 'public' %}
+                            <div class="spotlight overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group flex flex-col h-full">
+                                <div class="spotlight-content p-6 flex flex-col h-full">
+                                    <div class="flex-grow">
+                                        <a href="{% url 'lesson_detail' lesson.id %}" class="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                                            {{ lesson.title }}
+                                        </a>
+                                        <div class="mt-4 flex flex-wrap items-center gap-2">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50">
+                                                {{ lesson.get_type_display }}
+                                            </span>
+                                            {% if user.profile.role == 'super_teacher' or user.profile.role == 'teacher' %}
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold border border-indigo-100 dark:border-indigo-800/50">
+                                                    {{ lesson.get_status_display }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700/50">
+                                        <a href="{% url 'lesson_detail' lesson.id %}" class="w-full inline-flex items-center justify-center px-5 py-2.5 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400 text-sm font-semibold rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-all duration-300 border border-brand-200 dark:border-brand-800/50 shadow-sm hover:shadow-md hover:shadow-brand-500/20 dark:hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] dark:hover:border-brand-500/50">
+                                            Начать изучение
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
 
-    <footer style="margin-top: 50px; text-align: center; color: #aaa; font-size: 12px; padding: 20px 0; border-top: 1px solid #eee;">
-        &copy; 2026 Физико-Математическая Образовательная Платформа (LMS)
-    </footer>
-</body>
-</html>
+            <div>
+                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]"></span>
+                    Доступные вам
+                </h3>
+                <div class="grid grid-cols-1 gap-6">
+                    {% for lesson in lessons %}
+                        {% if lesson.status == 'private' %}
+                            <div class="spotlight overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group flex flex-col h-full">
+                                <div class="spotlight-content p-6 flex flex-col h-full">
+                                    <div class="flex-grow">
+                                        <a href="{% url 'lesson_detail' lesson.id %}" class="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                                            {{ lesson.title }}
+                                        </a>
+                                        <div class="mt-4 flex flex-wrap items-center gap-2">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50">
+                                                {{ lesson.get_type_display }}
+                                            </span>
+                                            {% if user.profile.role == 'super_teacher' or user.profile.role == 'teacher' %}
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold border border-indigo-100 dark:border-indigo-800/50">
+                                                    {{ lesson.get_status_display }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700/50">
+                                        <a href="{% url 'lesson_detail' lesson.id %}" class="w-full inline-flex items-center justify-center px-5 py-2.5 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400 text-sm font-semibold rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-all duration-300 border border-brand-200 dark:border-brand-800/50 shadow-sm hover:shadow-md hover:shadow-brand-500/20 dark:hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] dark:hover:border-brand-500/50">
+                                            Начать изучение
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+<script>
+    document.querySelectorAll('.spotlight').forEach(el => {
+        el.addEventListener('mousemove', e => {
+            const rect = el.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            el.style.setProperty('--mouse-x', `${x}px`);
+            el.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+</script>
+{% endblock %}

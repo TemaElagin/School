@@ -1,28 +1,69 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ course.title }}</title>
-</head>
-<body>
-    <p><a href="{% url 'index' %}">← На главную</a></p>
-    <hr>
-    <h1>Курс: {{ course.title }}</h1>
-    <p>{{ course.description }}</p>
-    <hr>
+{% extends "base.html" %}
 
-    <h2>Список занятий курса:</h2>
-    <ul>
-        {% for lesson in lessons %}
-            <li style="margin-bottom: 10px;">
-                <a href="{% url 'lesson_detail' lesson.id %}" style="font-size: 16px; font-weight: bold;">
-                    {{ lesson.title }}
-                </a>
-                — <span>{{ lesson.get_type_display }}</span>
-            </li>
-        {% empty %}
-            <p style="color: gray;">В этом курсе пока нет занятий.</p>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+{% block title %}{{ course.title }} — MySchool{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+
+    <div>
+        <a href="{% url 'index' %}" class="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 transition-colors duration-200 group">
+            <span class="mr-2 group-hover:-translate-x-1 transition-transform">←</span> Вернуться на главную
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 shadow-sm transition-colors duration-300">
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-4">{{ course.title }}</h1>
+        <p class="text-slate-600 dark:text-slate-300 text-lg leading-relaxed">{{ course.description }}</p>
+    </div>
+
+    <div>
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2 transition-colors duration-300">
+            <span class="text-brand-500">📋</span> Программа курса
+        </h2>
+
+        {% if lessons %}
+            <div class="relative border-l-2 border-slate-200 dark:border-slate-700 ml-4 space-y-6 pb-4 transition-colors duration-300">
+                {% for lesson in lessons %}
+                    <div class="relative pl-8">
+                        <div class="absolute -left-[9px] top-4 w-4 h-4 rounded-full bg-brand-50 dark:bg-brand-900/50 border-2 border-brand-500 dark:border-brand-400 transition-colors duration-300"></div>
+
+                        <a href="{% url 'lesson_detail' lesson.id %}" class="block group">
+                            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm group-hover:shadow-md group-hover:border-brand-300 dark:group-hover:border-brand-500/50 transition-all duration-300">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                                            {{ lesson.title }}
+                                        </h3>
+                                        <div class="mt-2 flex items-center gap-2 text-sm">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-700/50 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50 transition-colors duration-300">
+                                                {{ lesson.get_type_display }}
+                                            </span>
+                                            
+                                            {% if user.profile.role == 'super_teacher' or user.profile.role == 'teacher' %}
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold border border-indigo-100 dark:border-indigo-800/50 transition-colors duration-300">
+                                                    {{ lesson.get_status_display }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="shrink-0 text-slate-300 dark:text-slate-600 group-hover:text-brand-500 dark:group-hover:text-brand-400 group-hover:translate-x-1 transition-all duration-300">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-500 dark:text-slate-400 transition-colors duration-300">
+                В этом курсе пока нет занятий.
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

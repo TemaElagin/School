@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MySchool{% endblock %}</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class', /* Включаем ручное управление темной темой */
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300">
+
+    <nav class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-brand-600 hover:text-brand-900 dark:hover:text-brand-400 transition-colors duration-200">
+                        MySchool
+                    </a>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button id="theme-toggle" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors">
+                        <span id="theme-icon" class="text-lg">🌙</span>
+                    </button>
+
+                    {% if user.is_authenticated %}
+                        <span class="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:inline-block">
+                            Привет, {{ user.username }}
+                            <span class="text-xs text-slate-400 dark:text-slate-500">({{ user.profile.get_role_display }})</span>
+                        </span>
+
+                        {% if user.profile.role == 'super_teacher' %}
+                            <a href="{% url 'super_teacher_dashboard' %}" class="text-sm font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors duration-200">
+                                Панель СуперУчителя
+                            </a>
+                        {% elif user.profile.role == 'teacher' %}
+                            <a href="{% url 'teacher_dashboard' %}" class="text-sm font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 transition-colors duration-200">
+                                Кабинет Учителя
+                            </a>
+                        {% endif %}
+
+                        <a href="{% url 'logout' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 dark:text-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all duration-200">
+                            Выйти
+                        </a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="text-sm font-medium text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 transition-colors duration-200">Войти</a>
+                        <a href="{% url 'register' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-600 hover:bg-brand-500 shadow-sm transition-all duration-200">
+                            Регистрация
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full animate-fade-in-up">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-auto transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-400 dark:text-slate-500">
+            &copy; {% now "Y" %} MySchool. Все права защищены.
+        </div>
+    </footer>
+
+    <script>
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const htmlElement = document.documentElement;
+
+        // При загрузке проверяем, что сохранено в localStorage
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            htmlElement.classList.add('dark');
+            themeIcon.textContent = '☀️';
+        } else {
+            htmlElement.classList.remove('dark');
+            themeIcon.textContent = '🌙';
+        }
+
+        // Слушатель на кнопку
+        themeToggleBtn.addEventListener('click', function() {
+            htmlElement.classList.toggle('dark');
+            if (htmlElement.classList.contains('dark')) {
+                localStorage.setItem('theme', 'dark');
+                themeIcon.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeIcon.textContent = '🌙';
+            }
+        });
+    </script>
+</body>
+</html>

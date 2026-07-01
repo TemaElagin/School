@@ -1,170 +1,240 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ lesson.title }}</title>
+{% extends "base.html" %}
 
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
-            },
-            svg: { fontCache: 'global' }
-        };
-    </script>
-    <script type="text/javascript" id="MathJax-script" async
-        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
-    </script>
-</head>
-<body>
-    <p><a href="{% url 'index' %}">← На главную</a></p>
-    <hr>
+{% block title %}{{ lesson.title }} — MySchool{% endblock %}
 
-    <h1>{{ lesson.title }}
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+
+    <!-- Кнопка назад -->
+    <div>
+        <a href="{% url 'index' %}" class="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 transition-colors duration-200 group">
+            <span class="mr-2 group-hover:-translate-x-1 transition-transform">←</span> Вернуться на главную
+        </a>
+    </div>
+
+    <!-- Шапка урока -->
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row md:items-start justify-between gap-4 transition-colors duration-300">
+        <div>
+            <div class="flex items-center gap-3 mb-3">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 text-xs font-semibold border border-brand-200 dark:border-brand-800/50">
+                    {{ lesson.get_type_display }}
+                </span>
+            </div>
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white">{{ lesson.title }}</h1>
+        </div>
+        
         {% if user.profile.role == 'super_teacher' or user.profile.role == 'teacher' %}
-            <a href="{% url 'edit_lesson' lesson.id %}" style="font-size: 14px; background-color: #ffc107; color: black; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-left: 15px;">✏️ Редактировать название и контент</a>
+            <a href="{% url 'edit_lesson' lesson.id %}" class="shrink-0 inline-flex items-center justify-center px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 text-sm font-semibold rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors duration-200 border border-amber-200 dark:border-amber-800/50">
+                ✏️ Редактировать
+            </a>
         {% endif %}
-    </h1>
-    <p>Тип занятия: <strong>{{ lesson.get_type_display }}</strong></p>
-    <hr>
+    </div>
 
+    <!-- Блоки уведомлений для тестов -->
     {% if test_submitted %}
-        <div style="background-color: #e2f0d9; color: #385723; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #385723;">
-            <h3>📊 Тест отправлен на проверку!</h3>
-            <p>Ваш результат в текущей попытке: <strong>{{ score }}</strong> из <strong>{{ total_questions }}</strong> правильных ответов. (Всего попыток: {{ existing_result.attempts_count }})</p>
+        <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-6 shadow-sm transition-colors duration-300">
+            <h3 class="text-lg font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-2 mb-2">
+                <span>📊</span> Тест отправлен на проверку!
+            </h3>
+            <p class="text-emerald-700 dark:text-emerald-300">
+                Ваш результат в текущей попытке: <strong class="font-bold text-emerald-900 dark:text-emerald-100">{{ score }}</strong> из <strong class="font-bold text-emerald-900 dark:text-emerald-100">{{ total_questions }}</strong> правильных ответов. 
+                <span class="opacity-75">(Всего попыток: {{ existing_result.attempts_count }})</span>
+            </p>
         </div>
     {% elif existing_result %}
-        <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 25px; border: 1px solid #ffeeba;">
-            <h3>📝 Вы уже проходили этот тест ранее</h3>
-            <p>Ваш последний результат: <strong>{{ existing_result.score }}</strong> из <strong>{{ existing_result.total_questions }}</strong> (Всего попыток: {{ existing_result.attempts_count }} | Дата: {{ existing_result.updated_at|date:"d.m.Y H:i" }}).</p>
+        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-6 shadow-sm transition-colors duration-300">
+            <h3 class="text-lg font-bold text-amber-800 dark:text-amber-400 flex items-center gap-2 mb-2">
+                <span>📝</span> Вы уже проходили этот тест ранее
+            </h3>
+            <p class="text-amber-700 dark:text-amber-300">
+                Ваш последний результат: <strong class="font-bold text-amber-900 dark:text-amber-100">{{ existing_result.score }}</strong> из <strong class="font-bold text-amber-900 dark:text-amber-100">{{ existing_result.total_questions }}</strong>.
+                <span class="opacity-75">(Всего попыток: {{ existing_result.attempts_count }} | Дата: {{ existing_result.updated_at|date:"d.m.Y H:i" }})</span>
+            </p>
         </div>
     {% endif %}
 
+    <!-- ========================================== -->
+    <!-- ЛОГИКА ОТОБРАЖЕНИЯ КОНТЕНТА ПО ТИПУ УРОКА  -->
+    <!-- ========================================== -->
 
+    <!-- ТИП: ТЕКСТ -->
     {% if lesson.type == 'text' %}
-        <div class="content" style="font-size: 18px; line-height: 1.6; max-width: 800px; background-color: #fcfcfc; padding: 10px;">
-            {{ lesson.content_text|linebreaks }}
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 shadow-sm transition-colors duration-300">
+            <div class="text-slate-800 dark:text-slate-200 text-lg leading-relaxed space-y-4">
+                {{ lesson.content_text|linebreaks }}
+            </div>
         </div>
 
+    <!-- ТИП: ВИДЕО -->
     {% elif lesson.type == 'video' %}
-        <div style="margin-bottom: 25px; max-width: 800px;">
+        <div class="space-y-6">
             {% if embed_video_url %}
-                <iframe width="100%" height="450" src="{{ embed_video_url }}"
-                        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                </iframe>
+                <div class="aspect-video w-full rounded-2xl overflow-hidden shadow-lg bg-black">
+                    <iframe class="w-full h-full" src="{{ embed_video_url }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
             {% elif is_direct_file %}
-                <video width="100%" height="450" controls style="border-radius: 8px; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <source src="{{ lesson.video_url }}" type="video/mp4">
-                    Ваш браузер не поддерживает встроенный плеер.
-                </video>
+                <div class="aspect-video w-full rounded-2xl overflow-hidden shadow-lg bg-black">
+                    <video class="w-full h-full object-cover" controls>
+                        <source src="{{ lesson.video_url }}" type="video/mp4">
+                        Ваш браузер не поддерживает встроенный плеер.
+                    </video>
+                </div>
             {% elif lesson.video_url %}
-                <div style="background-color: #f1f3f5; padding: 15px; border-radius: 4px; border-left: 4px solid #6c757d;">
-                    <p>Плеер не поддерживает автоматическое встраивание для этой ссылки. Вы можете посмотреть её напрямую:</p>
-                    <p><a href="{{ lesson.video_url }}" target="_blank" style="font-weight: bold; color: #007bff;">{{ lesson.video_url }}</a></p>
+                <div class="bg-slate-50 dark:bg-slate-800/50 border-l-4 border-slate-400 p-6 rounded-r-2xl">
+                    <p class="text-slate-700 dark:text-slate-300 mb-2">Плеер не поддерживает автоматическое встраивание для этой ссылки. Вы можете посмотреть её напрямую:</p>
+                    <a href="{{ lesson.video_url }}" target="_blank" class="text-brand-600 dark:text-brand-400 font-bold hover:underline break-all">{{ lesson.video_url }}</a>
                 </div>
             {% else %}
-                <p style="color: gray;">Преподаватель еще не прикрепил видеоматериалы к этому уроку.</p>
+                <div class="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-500 dark:text-slate-400">
+                    Преподаватель еще не прикрепил видеоматериалы к этому уроку.
+                </div>
+            {% endif %}
+
+            {% if lesson.content_text %}
+                <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 shadow-sm transition-colors duration-300">
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-4">Конспект к лекции</h3>
+                    <div class="text-slate-700 dark:text-slate-300 text-base leading-relaxed space-y-4">
+                        {{ lesson.content_text|linebreaks }}
+                    </div>
+                </div>
             {% endif %}
         </div>
 
-        {% if lesson.content_text %}
-            <h3>Конспект к лекции:</h3>
-            <div class="content" style="font-size: 16px; line-height: 1.5;">{{ lesson.content_text|linebreaks }}</div>
-        {% endif %}
-
+    <!-- ТИП: ЗАДАЧА -->
     {% elif lesson.type == 'task' %}
-        <div class="task-block" style="background-color: #f9f9f9; padding: 20px; border-left: 5px solid #17a2b8; margin-bottom: 20px;">
-            <h3>Условие задачи:</h3>
-            <div class="content" style="font-size: 16px;">{{ lesson.content_text|linebreaks }}</div>
+        <div class="space-y-8">
+            <div class="bg-slate-50 dark:bg-slate-800/50 border-l-4 border-brand-500 p-6 rounded-r-2xl shadow-sm">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-3">Условие задачи:</h3>
+                <div class="text-slate-700 dark:text-slate-300 text-base leading-relaxed space-y-4">
+                    {{ lesson.content_text|linebreaks }}
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Ваше решение (PDF или Изображение)</h3>
+                
+                {% if submission %}
+                    <div class="mb-6 p-6 rounded-2xl border transition-colors duration-300 
+                        {% if submission.is_checked %} bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300
+                        {% else %} bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 {% endif %}">
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                            <p class="font-medium">
+                                <strong>Статус:</strong> 
+                                {% if submission.is_checked %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-800/50 text-emerald-700 dark:text-emerald-400 text-sm">Проверено преподавателем</span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-800/50 text-amber-700 dark:text-amber-400 text-sm">Ожидает проверки</span>
+                                {% endif %}
+                            </p>
+                            <span class="text-sm opacity-75">Отправлено: {{ submission.submitted_at|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        
+                        <p class="mb-4">Вы загрузили файл: <a href="{{ submission.file.url }}" target="_blank" class="font-bold underline hover:opacity-80">Открыть отправленное решение</a></p>
+
+                        {% if submission.is_checked %}
+                            <hr class="border-emerald-200 dark:border-emerald-800/50 my-4">
+                            <h4 class="font-bold text-lg mb-3">Результаты проверки:</h4>
+                            <div class="bg-white/50 dark:bg-black/20 rounded-xl p-4 space-y-3">
+                                <p><strong>Оценка:</strong> <span class="text-xl font-black">{{ submission.grade }}</span></p>
+                                {% if submission.teacher_comment %}
+                                    <p><strong>Комментарий учителя:</strong><br> <span class="block mt-1 italic">{{ submission.teacher_comment|linebreaks }}</span></p>
+                                {% endif %}
+                                {% if submission.teacher_file %}
+                                    <p class="pt-2"><strong>Проверенный файл:</strong> <a href="{{ submission.teacher_file.url }}" target="_blank" class="font-bold underline hover:opacity-80">Скачать файл учителя</a></p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm transition-colors duration-300">
+                    {% csrf_token %}
+                    <div class="mb-6">
+                        <label for="id_file" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Выберите файл решения:</label>
+                        <!-- Стилизация самого input type="file" через Tailwind -->
+                        <div class="block w-full text-sm text-slate-500 dark:text-slate-400
+                                  file:mr-4 file:py-2.5 file:px-4
+                                  file:rounded-lg file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-brand-50 file:text-brand-700
+                                  hover:file:bg-brand-100 
+                                  dark:file:bg-brand-900/30 dark:file:text-brand-400 dark:hover:file:bg-brand-900/50
+                                  cursor-pointer transition-colors">
+                            {{ submission_form.file }}
+                        </div>
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center px-6 py-3 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 shadow-sm transition-colors duration-200">
+                        {% if submission %}Переотправить решение{% else %}Загрузить работу на проверку{% endif %}
+                    </button>
+                </form>
+            </div>
         </div>
 
-        <hr>
-        <h3>Ваше решение (Формат PDF или Изображение):</h3>
-
-        {% if submission %}
-            <div style="padding: 15px; border-radius: 5px; margin-bottom: 20px;
-                background-color: {% if submission.is_checked %}#d4edda{% else %}#fff3cd{% endif %};
-                color: {% if submission.is_checked %}#155724{% else %}#856404{% endif %};">
-
-                <p><strong>Статус:</strong> {% if submission.is_checked %}Проверено преподавателем{% else %}Ожидает проверки{% endif %}</p>
-                <p>Вы загрузили файл: <a href="{{ submission.file.url }}" target="_blank">Открыть отправленное решение</a> (Отправлено: {{ submission.submitted_at|date:"d.m.Y H:i" }})</p>
-
-                {% if submission.is_checked %}
-                    <hr style="border-top: 1px solid #b2dba1;">
-                    <h4>Результаты проверки:</h4>
-                    <p><strong>Оценка:</strong> <span style="font-size: 18px; font-weight: bold;">{{ submission.grade }}</span></p>
-                    {% if submission.teacher_comment %}
-                        <p><strong>Комментарий учителя:</strong> {{ submission.teacher_comment|linebreaks }}</p>
-                    {% endif %}
-                    {% if submission.teacher_file %}
-                        <p><strong>Проверенный файл (с исправлениями):</strong> <a href="{{ submission.teacher_file.url }}" target="_blank" style="font-weight: bold;">Скачать файл учителя</a></p>
-                    {% endif %}
-                {% endif %}
+    <!-- ТИП: ТЕСТ -->
+    {% elif lesson.type == 'test' %}
+        {% if lesson.content_text %}
+            <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 mb-8 text-slate-600 dark:text-slate-300 italic text-base">
+                {{ lesson.content_text|linebreaks }}
             </div>
         {% endif %}
 
-        <form method="post" enctype="multipart/form-data" style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px dashed #ccc; max-width: 500px;">
-            {% csrf_token %}
-            <p>
-                <label for="id_file"><strong>Выбрать файл решения:</strong></label><br><br>
-                {{ submission_form.file }}
-            </p>
-            <button type="submit" style="padding: 10px 20px; background-color: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold;">
-                {% if submission %}Переотправить решение{% else %}Загрузить работу на проверку{% endif %}
-            </button>
-        </form>
-
-    {% elif lesson.type == 'test' %}
-        {% if lesson.content_text %}
-            <div class="content" style="margin-bottom: 20px; font-style: italic; color: #555;">{{ lesson.content_text|linebreaks }}</div>
-        {% endif %}
-
-        <form method="post">
+        <form method="post" class="space-y-6">
             {% csrf_token %}
             {% for question in questions %}
-                <div style="margin-bottom: 20px; padding: 15px; border-radius: 5px;
-                    border-left: 4px solid {% if not test_submitted %}#007bff{% elif question.is_correct %}#28a745{% else %}#dc3545{% endif %};
-                    background-color: {% if not test_submitted %}#f8f9fa{% elif question.is_correct %}#f4fbf3{% else %}#fdf4f4{% endif %};">
+                <div class="bg-white dark:bg-slate-800 border-l-4 rounded-r-2xl rounded-l-sm p-6 shadow-sm transition-colors duration-300
+                    {% if not test_submitted %} border-brand-500 dark:border-brand-500
+                    {% elif question.is_correct %} border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/10
+                    {% else %} border-rose-500 bg-rose-50/30 dark:bg-rose-900/10 {% endif %}">
 
-                    <p><strong>Вопрос {{ forloop.counter }}:</strong> {{ question.text }}</p>
+                    <p class="text-lg font-medium text-slate-900 dark:text-slate-100 mb-4">
+                        <strong class="text-slate-500 dark:text-slate-400">Вопрос {{ forloop.counter }}:</strong> <br class="sm:hidden">
+                        {{ question.text }}
+                    </p>
 
-                    <p>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                         <input type="text" name="question_{{ question.id }}"
                                value="{{ question.student_answer|default:'' }}"
                                placeholder="Введите ваш ответ..."
-                               style="padding: 8px; width: 280px; font-size: 14px;"
+                               class="w-full sm:w-72 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
                                {% if test_submitted %}disabled{% endif %} required>
-                    </p>
-
-                    {% if test_submitted %}
-                        {% if question.is_correct %}
-                            <span style="color: green; font-weight: bold; font-size: 14px;">✓ Верно</span>
-                        {% else %}
-                            <span style="color: red; font-weight: bold; font-size: 14px;">
-                                ❌ Ошибка (Ожидался ответ: {{ question.correct_answer }})
-                            </span>
+                        
+                        {% if test_submitted %}
+                            {% if question.is_correct %}
+                                <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    Верно
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    Ошибка
+                                </span>
+                            {% endif %}
                         {% endif %}
-                    {% endif %}
+                    </div>
                 </div>
             {% empty %}
-                <p style="color: gray;">В этом тесте пока нет вопросов.</p>
+                <div class="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center text-slate-500 dark:text-slate-400">
+                    В этом тесте пока нет вопросов.
+                </div>
             {% endfor %}
 
-            {% if questions and not test_submitted %}
-                <button type="submit" style="padding: 12px 25px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 14px; font-weight: bold;">
-                    Отправить все ответы теста
-                </button>
-            {% endif %}
+            <div class="pt-4 flex flex-wrap gap-4">
+                {% if questions and not test_submitted %}
+                    <button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 shadow-sm transition-colors duration-200">
+                        Отправить все ответы
+                    </button>
+                {% endif %}
 
-            {% if test_submitted %}
-                <a href="{% url 'lesson_detail' lesson.id %}" style="display: inline-block; padding: 12px 25px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 3px; margin-top: 10px; font-size: 14px;">
-                    Пройти тест заново
-                </a>
-            {% endif %}
+                {% if test_submitted %}
+                    <a href="{% url 'lesson_detail' lesson.id %}" class="inline-flex items-center justify-center px-8 py-3 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 shadow-sm transition-colors duration-200">
+                        Пройти тест заново
+                    </a>
+                {% endif %}
+            </div>
         </form>
     {% endif %}
 
-</body>
-</html>
+</div>
+{% endblock %}
