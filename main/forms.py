@@ -107,8 +107,13 @@ class StudentSubmissionForm(forms.ModelForm):
             raise forms.ValidationError("Вы не можете загрузить более 10 файлов.")
 
         allowed_extensions = ['.pdf', '.docx', '.jpg', '.jpeg', '.png']
+        MAX_FILE_SIZE = 5 * 1024 * 1024
         for f in files:
             ext = os.path.splitext(f.name)[1].lower()
+
+            if f.size > MAX_FILE_SIZE:
+                raise forms.ValidationError(f"Файл {f.name} слишком тяжелый. Максимальный размер одного файла — 5 МБ.")
+
             if ext not in allowed_extensions:
                 raise forms.ValidationError(
                     f"Файл {f.name} имеет недопустимый формат. Разрешены только: pdf, docx, jpg, jpeg, png.")
